@@ -1,5 +1,5 @@
 // Copyright (2025) Beijing Volcano Engine Technology Ltd.
-// SPDX-License-Identifier: Apache License 2.0
+// SPDX-License-Identifier: Apache-2.0
 
 #ifndef __CONV_AI_NODE_VOLC_WS_H__
 #define __CONV_AI_NODE_VOLC_WS_H__
