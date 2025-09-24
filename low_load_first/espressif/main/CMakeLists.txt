@@ -1,5 +1,5 @@
 # Copyright (2025) Beijing Volcano Engine Technology Ltd.
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: Apache License 2.0
 
 set(COMPONENT_SRCS "conv_ai_embedded_kit.c pipeline.c configuration_ap.c network.c" )
 if (CONFIG_VOLC_WS_MODE)

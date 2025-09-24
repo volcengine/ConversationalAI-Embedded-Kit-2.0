@@ -1,5 +1,5 @@
 // Copyright (2025) Beijing Volcano Engine Technology Ltd.
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Apache License 2.0
 
 #ifndef __PIPELINE_H__
 #define __PIPELINE_H__

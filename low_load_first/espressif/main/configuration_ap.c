@@ -1,5 +1,5 @@
 // Copyright (2025) Beijing Volcano Engine Technology Ltd.
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Apache License 2.0
 
 #include "configuration_ap.h"
 
