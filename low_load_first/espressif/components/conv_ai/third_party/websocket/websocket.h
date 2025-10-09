@@ -11,8 +11,8 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 
-#include "platform/volc_platform.h"
-#include "third_party/mbedtls_port/tls_client.h"
+#include "volc_platform.h"
+#include "tls_client.h"
 #define CONFIG_WEBSOCKET_TLS
 
 typedef enum {

@@ -1,0 +1,40 @@
+menu "Example Configuration"
+
+choice AI_AGENT_MODE
+    prompt "Volcano RTC/WS modee"
+    default VOLC_RTC_MODE
+
+    config VOLC_RTC_MODE
+        bool "enable volcano rtc mode"
+
+endchoice
+
+config VOLC_INSTANCE_ID
+    string "volcano instance id"
+    default ""
+
+config VOLC_PRODUCT_KEY
+    string "volcano product key"
+    default ""
+
+config VOLC_PRODUCT_SECRET
+    string "product secret"
+    default ""
+
+config VOLC_DEVICE_NAME
+    string "device name"
+    default "volc_test"
+
+config VOLC_BOT_ID
+    string "bot id"
+    default ""
+
+menu "Develop Configuration"
+
+config PRINT_TASK_INFO
+    bool "print task info"
+    default n
+
+endmenu
+
+endmenu

@@ -15,7 +15,7 @@ config VOLC_INSTANCE_ID
     depends on VOLC_WS_MODE
 
 config VOLC_PRODUCT_KEY
-    string "VOLC_PRODUCT_KEY"
+    string "volcano product key"
     default ""
     depends on VOLC_WS_MODE
 

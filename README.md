@@ -22,7 +22,11 @@
 
 ### 步骤二：运行设备端
 请根据你使用的硬件开发板，选择对应的设备端部署教程：
+#### 低负载方案
 - 乐鑫 ESP32-S3-Korvo-2: [运行设备端_乐鑫](low_load_first/espressif/README.md)
+#### 高性能方案
+- 乐鑫 ESP32-S3-Korvo-2: [运行设备端_乐鑫](high_quality_first/espressif/README.md)
+
 ## 技术交流
 欢迎加入我们的技术交流群或提出Issue，一起探讨技术，一起学习进步。
 <div align=center><img src="resource/image/tech_support.png" width="200"></div>

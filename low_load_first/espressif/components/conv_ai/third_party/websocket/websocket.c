@@ -27,7 +27,7 @@
 #include <inttypes.h>
 #include <sys/select.h>
 
-#include "platform/volc_platform.h"
+#include "volc_platform.h"
 #include "util/volc_list.h"
 #include "util/volc_log.h"
 #include "util/volc_base64.h"
