@@ -115,7 +115,6 @@ static void _on_volc_video_data(volc_engine_t handle, const void *data_ptr, size
 static void _on_volc_message_data(volc_engine_t handle, const void *message, size_t size, volc_message_info_t *info_ptr, void *user_data)
 {
     ESP_LOGI(TAG, "Received message: %.*s", (int)size, (const char *)message);
-    printf("Received message: %.*s\n", (int)size, (const char *)message);
 }
 
 void initialize_sntp(void)

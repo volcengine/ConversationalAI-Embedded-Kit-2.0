@@ -159,6 +159,9 @@ static void __ws_recv_data(ws_impl_t* ws, const char* data, int data_len)
         LOGI("data: %s", data);
         __send_message_2_user(ws, &msg);
     } else {
+        if (strcmp(p_type, "session.created") == 0) {
+            LOGI("%s", data);
+        }
         info.type = VOLC_DATA_TYPE_MESSAGE;
         info.info.message.is_binary = false;
         __send_data_2_user(ws, data, data_len, &info);
