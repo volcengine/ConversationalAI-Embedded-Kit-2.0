@@ -5,6 +5,7 @@
 ### New Features
 
 ### Changes
+- drop text when interrupted
 
 ### Bugs fixed
 

@@ -36,6 +36,7 @@ typedef struct {
     char uri[256];
     size_t data_buf_size;
     void* context;
+    volatile volc_conv_status_e conv_status;
     volc_msg_cb message_callback;
     volc_data_cb data_callback;
     char hardware_id[32];
@@ -142,18 +143,22 @@ static void __ws_recv_data(ws_impl_t* ws, const char* data, int data_len)
         __send_data_2_user(ws, p_data, len, &info);
         HAL_SAFE_FREE(p_data);
     } else if (strcmp(p_type, "input_audio_buffer.speech_started") == 0) {
+        ws->conv_status = VOLC_CONV_STATUS_LISTENING;
         msg.code = VOLC_MSG_CONV_STATUS;
         msg.data.conv_status = VOLC_CONV_STATUS_LISTENING;
         __send_message_2_user(ws, &msg);
     } else if (strcmp(p_type, "input_audio_buffer.speech_stopped") == 0) {
+        ws->conv_status = VOLC_CONV_STATUS_THINKING;
         msg.code = VOLC_MSG_CONV_STATUS;
         msg.data.conv_status = VOLC_CONV_STATUS_THINKING;
         __send_message_2_user(ws, &msg);
     } else if (strcmp(p_type, "response.done") == 0 && p_status) {
         msg.code = VOLC_MSG_CONV_STATUS;
         if (strcmp(p_status, "completed") == 0) {
+            ws->conv_status = VOLC_CONV_STATUS_ANSWER_FINISH;
             msg.data.conv_status = VOLC_CONV_STATUS_ANSWER_FINISH;
         } else if (strcmp(p_status, "cancelled") == 0) {
+            ws->conv_status = VOLC_CONV_STATUS_INTERRUPTED;
             msg.data.conv_status = VOLC_CONV_STATUS_INTERRUPTED;
         }
         LOGI("data: %s", data);
@@ -161,6 +166,11 @@ static void __ws_recv_data(ws_impl_t* ws, const char* data, int data_len)
     } else {
         if (strcmp(p_type, "session.created") == 0) {
             LOGI("%s", data);
+        } else if (strcmp(p_type, "response.audio_transcript.delta") == 0 || strcmp(p_type, "response.audio_transcript.done") == 0 || strcmp(p_type, "response.audio.done") == 0) {
+            volc_json_read_string(p_json, "response_id", &p_response_id);
+            if (__ws_drop_for_interrupted(ws, p_response_id)) {
+                goto err_out_label;
+            }
         }
         info.type = VOLC_DATA_TYPE_MESSAGE;
         info.info.message.is_binary = false;
@@ -445,6 +455,7 @@ volc_ws_t volc_ws_create(void* context, cJSON* p_config, volc_msg_cb message_cal
     ws->message_callback = message_callback;
     ws->data_callback = data_callback;
     ws->context = context;
+    ws->conv_status = VOLC_CONV_STATUS_ANSWER_FINISH;
 
     hal_get_uuid(ws->hardware_id, sizeof(ws->hardware_id));
 
@@ -530,6 +541,10 @@ int volc_ws_interrupt(volc_ws_t ws) {
     ws_impl_t* ws_impl = (ws_impl_t*) ws;
     if (!ws_impl) {
         LOGE("ws instance is NULL");
+        return -1;
+    }
+    if (ws_impl->conv_status != VOLC_CONV_STATUS_LISTENING && ws_impl->conv_status != VOLC_CONV_STATUS_THINKING) {
+        LOGW("interrupt failed, conv status is not listening or thinking");
         return -1;
     }
     if (__build_ws_message(ws_interrupt_str, &msg, &msg_len) != 0) {
