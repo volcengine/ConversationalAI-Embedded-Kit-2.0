@@ -1,0 +1,1255 @@
+From 9c308a3765f882487700f64060095ab1a186e1e9 Mon Sep 17 00:00:00 2001
+From: Gao Wei <gaowei@espressif.com>
+Date: Fri, 11 Oct 2024 18:02:44 +0800
+Subject: [PATCH] esp_peripherals: Support ADC API of IDF 5.x in adc_button
+
+---
+ components/audio_board/esp32_c3_lyra/board.c  |   2 +-
+ .../esp32_c3_lyra/board_pins_config.c         |   5 +
+ .../audio_board/esp32_c6_devkit/board.c       |   2 +-
+ .../audio_board/esp32_korvo_du1906/board.c    |   2 +-
+ .../esp32_s2_kaluga_1_v1_2/board.c            |   4 +-
+ .../audio_board/esp32_s3_box_lite/board.c     |   2 +-
+ .../audio_board/esp32_s3_korvo2_v3/board.c    |   2 +-
+ .../audio_board/esp32_s3_korvo2l_v1/board.c   |   2 +-
+ .../audio_board/include/board_pins_config.h   |   8 +
+ components/esp_peripherals/CMakeLists.txt     |   4 +-
+ components/esp_peripherals/esp_peripherals.c  |  19 +-
+ .../include/periph_adc_button.h               |   6 +-
+ .../lib/adc_button/adc_button.c               | 468 ++++++++++++------
+ .../lib/adc_button/adc_button.h               |  41 ++
+ .../esp_peripherals/periph_adc_button.c       |  10 +-
+ .../esp_peripherals/test_apps/CMakeLists.txt  |  10 +
+ .../test_apps/main/CMakeLists.txt             |   5 +
+ .../test_apps/main/esp_periph_test.c          | 109 ++++
+ .../test_apps/main/idf_components.yml         |   3 +
+ .../test_apps/main/test_app_main.c            |  32 ++
+ .../esp_peripherals/test_apps/partitions.csv  |   4 +
+ .../test_apps/sdkconfig.defaults              |  48 ++
+ tools/ci/switch_branch.sh                     |   2 +-
+ 23 files changed, 611 insertions(+), 179 deletions(-)
+ create mode 100644 components/esp_peripherals/test_apps/CMakeLists.txt
+ create mode 100644 components/esp_peripherals/test_apps/main/CMakeLists.txt
+ create mode 100644 components/esp_peripherals/test_apps/main/esp_periph_test.c
+ create mode 100644 components/esp_peripherals/test_apps/main/idf_components.yml
+ create mode 100644 components/esp_peripherals/test_apps/main/test_app_main.c
+ create mode 100644 components/esp_peripherals/test_apps/partitions.csv
+ create mode 100644 components/esp_peripherals/test_apps/sdkconfig.defaults
+
+diff --git a/components/audio_board/esp32_c3_lyra/board.c b/components/audio_board/esp32_c3_lyra/board.c
+index c0483b5d9..022a88400 100644
+--- a/components/audio_board/esp32_c3_lyra/board.c
++++ b/components/audio_board/esp32_c3_lyra/board.c
+@@ -100,7 +100,7 @@ esp_err_t audio_board_key_init(esp_periph_set_handle_t set)
+ {
+     periph_adc_button_cfg_t adc_btn_cfg = PERIPH_ADC_BUTTON_DEFAULT_CONFIG();
+     adc_arr_t adc_btn_tag = ADC_DEFAULT_ARR();
+-    adc_btn_tag.adc_ch = ADC1_CHANNEL_2;
++    adc_btn_tag.adc_ch = ADC_CHANNEL_2;
+     adc_btn_tag.total_steps = 6;
+     int btn_array[7] = {190, 600, 1000, 1375, 1775, 2195, 2700};
+     adc_btn_tag.adc_level_step = (int *)(&btn_array);
+diff --git a/components/audio_board/esp32_c3_lyra/board_pins_config.c b/components/audio_board/esp32_c3_lyra/board_pins_config.c
+index c07e2073d..b24415629 100644
+--- a/components/audio_board/esp32_c3_lyra/board_pins_config.c
++++ b/components/audio_board/esp32_c3_lyra/board_pins_config.c
+@@ -109,6 +109,11 @@ int8_t get_input_mode_id(void)
+     return BUTTON_MODE_ID;
+ }
+ 
++int8_t get_input_color_id(void)
++{
++    return BUTTON_COLOR_ID;
++}
++
+ int8_t get_input_set_id(void)
+ {
+     return BUTTON_SET_ID;
+diff --git a/components/audio_board/esp32_c6_devkit/board.c b/components/audio_board/esp32_c6_devkit/board.c
+index 91f02cd14..6c7ff3f0a 100644
+--- a/components/audio_board/esp32_c6_devkit/board.c
++++ b/components/audio_board/esp32_c6_devkit/board.c
+@@ -81,7 +81,7 @@ esp_err_t audio_board_key_init(esp_periph_set_handle_t set)
+     esp_err_t ret = ESP_OK;
+     periph_adc_button_cfg_t adc_btn_cfg = PERIPH_ADC_BUTTON_DEFAULT_CONFIG();
+     adc_arr_t adc_btn_tag = ADC_DEFAULT_ARR();
+-    adc_btn_tag.adc_ch = ADC1_CHANNEL_2;
++    adc_btn_tag.adc_ch = ADC_CHANNEL_2;
+     adc_btn_tag.total_steps = 6;
+     int btn_array[7] = {380, 820, 1100, 1650, 1980, 2410, 2700};
+     adc_btn_tag.adc_level_step = (int *)(&btn_array);
+diff --git a/components/audio_board/esp32_korvo_du1906/board.c b/components/audio_board/esp32_korvo_du1906/board.c
+index b3de4fdd7..d17fb9744 100644
+--- a/components/audio_board/esp32_korvo_du1906/board.c
++++ b/components/audio_board/esp32_korvo_du1906/board.c
+@@ -107,7 +107,7 @@ esp_err_t audio_board_key_init(esp_periph_set_handle_t set)
+     periph_adc_button_cfg_t adc_btn_cfg = PERIPH_ADC_BUTTON_DEFAULT_CONFIG();
+     adc_btn_cfg.task_cfg.ext_stack = true;
+     adc_arr_t adc_btn_tag = ADC_DEFAULT_ARR();
+-    adc_btn_tag.adc_ch = ADC1_CHANNEL_0; // GPIO36
++    adc_btn_tag.adc_ch = ADC_CHANNEL_0;
+     adc_btn_tag.total_steps = 4;
+     int btn_array[5] = {200, 900, 1500, 2100, 2930};
+     adc_btn_tag.adc_level_step = btn_array;
+diff --git a/components/audio_board/esp32_s2_kaluga_1_v1_2/board.c b/components/audio_board/esp32_s2_kaluga_1_v1_2/board.c
+index 822574f55..3db705460 100644
+--- a/components/audio_board/esp32_s2_kaluga_1_v1_2/board.c
++++ b/components/audio_board/esp32_s2_kaluga_1_v1_2/board.c
+@@ -129,9 +129,9 @@ esp_err_t audio_board_key_init(esp_periph_set_handle_t set)
+ {
+     periph_adc_button_cfg_t adc_btn_cfg = PERIPH_ADC_BUTTON_DEFAULT_CONFIG();
+     adc_arr_t adc_btn_tag = ADC_DEFAULT_ARR();
+-    adc_btn_tag.adc_ch = ADC1_CHANNEL_5;
++    adc_btn_tag.adc_ch = ADC_CHANNEL_5;
+     adc_btn_tag.total_steps = 6;
+-    int btn_array[7] = {190, 600, 1000, 1375, 1775, 2195, 2610};
++    int btn_array[7] = {190, 600, 1000, 1375, 1775, 2195, 2510};
+     adc_btn_tag.adc_level_step = btn_array;
+     adc_btn_cfg.arr = &adc_btn_tag;
+     adc_btn_cfg.arr_size = 1;
+diff --git a/components/audio_board/esp32_s3_box_lite/board.c b/components/audio_board/esp32_s3_box_lite/board.c
+index 69ff7d6e9..65a88bcd8 100644
+--- a/components/audio_board/esp32_s3_box_lite/board.c
++++ b/components/audio_board/esp32_s3_box_lite/board.c
+@@ -140,7 +140,7 @@ esp_err_t audio_board_key_init(esp_periph_set_handle_t set)
+     periph_adc_button_cfg_t adc_btn_cfg = PERIPH_ADC_BUTTON_DEFAULT_CONFIG();
+     adc_arr_t adc_btn_tag = ADC_DEFAULT_ARR();
+     adc_btn_tag.total_steps = 3;
+-    adc_btn_tag.adc_ch = ADC1_CHANNEL_0;
++    adc_btn_tag.adc_ch = ADC_CHANNEL_0;
+     int btn_array[4] = {190, 1000, 2195, 3000};
+     adc_btn_tag.adc_level_step = btn_array;
+     adc_btn_cfg.arr = &adc_btn_tag;
+diff --git a/components/audio_board/esp32_s3_korvo2_v3/board.c b/components/audio_board/esp32_s3_korvo2_v3/board.c
+index c18fbde07..d01bee58a 100644
+--- a/components/audio_board/esp32_s3_korvo2_v3/board.c
++++ b/components/audio_board/esp32_s3_korvo2_v3/board.c
+@@ -157,7 +157,7 @@ esp_err_t audio_board_key_init(esp_periph_set_handle_t set)
+     periph_adc_button_cfg_t adc_btn_cfg = PERIPH_ADC_BUTTON_DEFAULT_CONFIG();
+     adc_arr_t adc_btn_tag = ADC_DEFAULT_ARR();
+     adc_btn_tag.total_steps = 6;
+-    adc_btn_tag.adc_ch = ADC1_CHANNEL_4;
++    adc_btn_tag.adc_ch = ADC_CHANNEL_4;
+     int btn_array[7] = {190, 600, 1000, 1375, 1775, 2195, 3000};
+     adc_btn_tag.adc_level_step = btn_array;
+     adc_btn_cfg.arr = &adc_btn_tag;
+diff --git a/components/audio_board/esp32_s3_korvo2l_v1/board.c b/components/audio_board/esp32_s3_korvo2l_v1/board.c
+index d91117cfb..93471ef18 100644
+--- a/components/audio_board/esp32_s3_korvo2l_v1/board.c
++++ b/components/audio_board/esp32_s3_korvo2l_v1/board.c
+@@ -164,7 +164,7 @@ esp_err_t audio_board_key_init(esp_periph_set_handle_t set)
+     periph_adc_button_cfg_t adc_btn_cfg = PERIPH_ADC_BUTTON_DEFAULT_CONFIG();
+     adc_arr_t adc_btn_tag = ADC_DEFAULT_ARR();
+     adc_btn_tag.total_steps = 6;
+-    adc_btn_tag.adc_ch = ADC1_CHANNEL_4;
++    adc_btn_tag.adc_ch = ADC_CHANNEL_4;
+     int btn_array[7] = {190, 600, 1000, 1375, 1775, 2195, 3000};
+     adc_btn_tag.adc_level_step = btn_array;
+     adc_btn_cfg.arr = &adc_btn_tag;
+diff --git a/components/audio_board/include/board_pins_config.h b/components/audio_board/include/board_pins_config.h
+index 628939213..e7fb6cc9c 100644
+--- a/components/audio_board/include/board_pins_config.h
++++ b/components/audio_board/include/board_pins_config.h
+@@ -161,6 +161,14 @@ int8_t get_input_rec_id(void);
+  */
+ int8_t get_input_mode_id(void);
+ 
++/**
++ * @brief  Get the number for color-button
++ *
++ * @return  -1      non-existent
++ *          Others  number
++ */
++int8_t get_input_color_id(void);
++
+ /**
+  * @brief Get number for set function
+  *
+diff --git a/components/esp_peripherals/CMakeLists.txt b/components/esp_peripherals/CMakeLists.txt
+index ab27f35dd..40d9610ce 100644
+--- a/components/esp_peripherals/CMakeLists.txt
++++ b/components/esp_peripherals/CMakeLists.txt
+@@ -68,9 +68,9 @@ list(APPEND COMPONENT_REQUIRES esp_lcd)
+ ENDIF()
+ 
+ if (idf_version VERSION_GREATER_EQUAL "5.0")
+-list(APPEND COMPONENT_PRIV_REQUIRES esp_adc)
++list(APPEND COMPONENT_REQUIRES esp_adc)
+ else()
+-list(APPEND COMPONENT_PRIV_REQUIRES esp_adc_cal)
++list(APPEND COMPONENT_REQUIRES esp_adc_cal)
+ endif()
+ 
+ register_component()
+diff --git a/components/esp_peripherals/esp_peripherals.c b/components/esp_peripherals/esp_peripherals.c
+index 0f85c53e8..e1cbfb541 100644
+--- a/components/esp_peripherals/esp_peripherals.c
++++ b/components/esp_peripherals/esp_peripherals.c
+@@ -325,9 +325,7 @@ esp_err_t esp_periph_set_list_destroy(esp_periph_set_handle_t periph_set)
+ {
+     esp_periph_handle_t periph;
+     STAILQ_FOREACH(periph, &periph_set->periph_list, entries) {
+-        if (periph->destroy) {
+-            periph->destroy(periph);
+-        }
++        esp_periph_destroy(periph);
+     }
+     return ESP_OK;
+ }
+@@ -509,7 +507,20 @@ esp_err_t esp_periph_run(esp_periph_handle_t periph)
+ 
+ esp_err_t esp_periph_destroy(esp_periph_handle_t periph)
+ {
+-    return periph->destroy(periph);
++    esp_err_t ret = ESP_OK;
++    if (periph->destroy) {
++        ret = periph->destroy(periph);
++        if (ret != ESP_OK) {
++            ESP_LOGE(TAG, "Destroy peripheral failed");
++        }
++        if (periph->tag) {
++            audio_free(periph->tag);
++        }
++        audio_free(periph);
++    } else {
++        ESP_LOGW(TAG, "Peripheral destroy has not been set");
++    }
++    return ret;
+ }
+ 
+ esp_err_t esp_periph_register_on_events(esp_periph_handle_t periph, esp_periph_event_t *evts)
+diff --git a/components/esp_peripherals/include/periph_adc_button.h b/components/esp_peripherals/include/periph_adc_button.h
+index af97414a0..fd1ba6074 100644
+--- a/components/esp_peripherals/include/periph_adc_button.h
++++ b/components/esp_peripherals/include/periph_adc_button.h
+@@ -25,7 +25,6 @@
+ #ifndef _PERIPH_ADC_BUTTON_H_
+ #define _PERIPH_ADC_BUTTON_H_
+ 
+-#include "driver/adc.h"
+ #include "adc_button.h"
+ #include "esp_peripherals.h"
+ 
+@@ -47,6 +46,7 @@ typedef struct {
+ } periph_adc_button_cfg_t;
+ 
+ #define PERIPH_ADC_BUTTON_DEFAULT_CONFIG() {   \
++    .arr_size = 1,                             \
+     .task_cfg = {                              \
+         .task_stack = ADC_BUTTON_STACK_SIZE,   \
+         .task_core  = ADC_BUTTON_TASK_CORE_ID, \
+@@ -75,9 +75,9 @@ typedef enum {
+ *   ADC1_CHANNEL_7 -  GPIO35
+ *
+ **/
+-
+ #define ADC_DEFAULT_ARR() {   \
+-    .adc_ch = ADC1_CHANNEL_3, \
++    .adc_unit = ADC_UNIT_1,   \
++    .adc_ch = ADC_CHANNEL_3,  \
+     .adc_level_step = NULL,   \
+     .total_steps = 6,         \
+     .press_judge_time = 3000, \
+diff --git a/components/esp_peripherals/lib/adc_button/adc_button.c b/components/esp_peripherals/lib/adc_button/adc_button.c
+index 11f5f2e15..065bf5fce 100644
+--- a/components/esp_peripherals/lib/adc_button/adc_button.c
++++ b/components/esp_peripherals/lib/adc_button/adc_button.c
+@@ -26,141 +26,163 @@
+ #include <stdlib.h>
+ #include "freertos/FreeRTOS.h"
+ #include "freertos/event_groups.h"
+-#include "driver/adc.h"
+ #include "math.h"
+-#include "audio_mem.h"
+-#include "esp_adc_cal.h"
+ #include "string.h"
+-#include "adc_button.h"
+ #include "esp_log.h"
++#include "audio_mem.h"
++#include "adc_button.h"
+ #include "audio_thread.h"
+ #include "audio_idf_version.h"
+ 
+-#if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
+-#define ADC_ATTEN_11db ADC_ATTEN_DB_11
+-#define ADC_WIDTH_12Bit ADC_BITWIDTH_12
+-#define ADC_WIDTH_13Bit ADC_BITWIDTH_13
+-#endif
+-
+-#define V_REF                           1100
+-
+-#define ADC_SAMPLES_NUM                 10
+-#define ADC_SAMPLE_INTERVAL_TIME_MS     20
+-#define DIAL_VOL_INTERVAL_TIME_MS       150
+-
+-#define ADC_BTN_INVALID_ID              -1
+-#define ADC_BTN_INVALID_ACT_ID          -2
+-#define ADC_BTN_DETECT_TIME_MS          20
+-#define ADC_BTN_DETECTED_CNT            2
+-
+-#ifndef ENABLE_ADC_VOLUME
+-#define USER_KEY_MAX                    7
++#if ADC_LEGACY_API
++#define V_REF           1100
++#define ADC_ATTEN_11db  ADC_ATTEN_DB_11
++#else  /* ADC_LEGACY_API */
++#if ((ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)) && (ESP_IDF_VERSION <= ESP_IDF_VERSION_VAL(5, 1, 0)))
++#define ADC_ATTEN_12db  ADC_ATTEN_DB_11
++#elif (ESP_IDF_VERSION > ESP_IDF_VERSION_VAL(5, 1, 0))
++#define ADC_ATTEN_12db  ADC_ATTEN_DB_12
++#endif  /* ((ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)) && (ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 1, 0))) */
+ #endif
+ 
+-static const char *TAG = "ADC_BTN";
++#define ADC_WIDTH_12Bit  ADC_BITWIDTH_12
++#define ADC_WIDTH_13Bit  ADC_BITWIDTH_13
+ 
+-static EventGroupHandle_t g_event_bit;
++#define DIAL_VOL_INTERVAL_TIME_MS    150
++#define ADC_SAMPLES_NUM              10
++#define ADC_SAMPLE_INTERVAL_TIME_MS  20
++#define ADC_BTN_INVALID_ID           -1
++#define ADC_BTN_INVALID_ACT_ID       -2
++#define ADC_BTN_DETECT_TIME_MS       20
++#define ADC_BTN_DETECTED_CNT         2
++#define ADC_VOL_EMPTY_THRESHOLD      200
++#define ADC_VOL_FULL_THRESHOLD       2500
++#define ADC_VOL_DIFF_THRESHOLD       80
++#define USER_KEY_MAX                 7
++#define DESTROY_BIT                  BIT0
+ 
+ typedef struct {
+     adc_button_callback btn_callback;
+-    adc_btn_list *head;
+-    void *user_data;
+-    audio_thread_t audio_thread;
++    adc_btn_list       *head;
++    void               *user_data;
++    audio_thread_t      audio_thread;
+ } adc_btn_tag_t;
+ 
+-static const int default_step_level[USER_KEY_MAX] = {0, 683, 1193, 1631, 2090, 2578, 3103};
+-static const int DESTROY_BIT = BIT0;
+-static bool _task_flag;
++static char *TAG = "ADC_BTN";
+ 
+-adc_btn_list *adc_btn_create_list(adc_arr_t *adc_conf, int channels)
++static bool               s_task_flag;
++static EventGroupHandle_t s_event_bit;
++
++static const int s_default_step_level[USER_KEY_MAX] = {0, 683, 1193, 1631, 2090, 2578, 3103};
++
++#if !ADC_LEGACY_API
++static adc_oneshot_unit_handle_t s_adc_oneshot_handle = NULL;
++static adc_cali_handle_t         s_adc_cali_chan_handle = NULL;
++
++static bool adc_calibration_init(adc_unit_t unit, adc_channel_t channel, adc_atten_t atten, adc_cali_handle_t *out_handle)
+ {
+-    adc_btn_list *head = NULL;
+-    adc_btn_list *node = NULL;
+-    adc_btn_list *find = NULL;
+-    for (int i = 0; i < channels; i++) {
+-        node = (adc_btn_list *)audio_calloc(1, sizeof(adc_btn_list));
+-        if (NULL == node) {
+-            ESP_LOGE(TAG, "Memory allocation failed! Line: %d", __LINE__);
+-            return NULL;
+-        }
+-        memset(node, 0, sizeof(adc_btn_list));
+-        adc_arr_t *info = &(node->adc_info);
+-        memcpy(info, adc_conf + i, sizeof(adc_arr_t));
+-        info->adc_level_step = (int *)audio_calloc(1, (info->total_steps + 1) * sizeof(int));
+-        memset(info->adc_level_step, 0, (info->total_steps + 1) * sizeof(int));
+-        if (NULL == info->adc_level_step) {
+-            ESP_LOGE(TAG, "Memory allocation failed! Line: %d", __LINE__);
+-            audio_free(node);
+-            return NULL;
+-        }
+-        if (adc_conf[i].adc_level_step == NULL) {
+-            memcpy(info->adc_level_step, default_step_level, USER_KEY_MAX * sizeof(int));
+-        } else {
+-            memcpy(info->adc_level_step, adc_conf[i].adc_level_step, (adc_conf[i].total_steps + 1) * sizeof(int));
+-        }
+-        if (info->total_steps > USER_KEY_MAX) {
+-            ESP_LOGE(TAG, "The total_steps should be less than USER_KEY_MAX");
+-            audio_free(info->adc_level_step);
+-            audio_free(node);
+-        }
+-        node->btn_dscp = (btn_decription *)audio_calloc(1, sizeof(btn_decription) * (adc_conf[i].total_steps));
+-        if (NULL == node->btn_dscp) {
+-            ESP_LOGE(TAG, "Memory allocation failed! Line: %d", __LINE__);
+-            audio_free(info->adc_level_step);
+-            audio_free(node);
++    adc_cali_handle_t handle = NULL;
++    esp_err_t ret = ESP_FAIL;
++    bool calibrated = false;
++
++#if ADC_CALI_SCHEME_CURVE_FITTING_SUPPORTED
++    if (!calibrated) {
++        ESP_LOGI(TAG, "Calibration scheme version is Curve Fitting");
++        adc_cali_curve_fitting_config_t cali_config = {
++            .unit_id = unit,
++#if ((ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)) && (ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 1, 0)) && (!CONFIG_IDF_TARGET_ESP32S3))
++            .chan = channel,
++#endif  /* ((ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)) && (ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 1, 0)) && (!CONFIG_IDF_TARGET_ESP32S3)) */
++            .atten = atten,
++            .bitwidth = ADC_BITWIDTH_DEFAULT,
++        };
++        ret = adc_cali_create_scheme_curve_fitting(&cali_config, &handle);
++        if (ret == ESP_OK) {
++            calibrated = true;
+         }
+-        memset(node->btn_dscp, 0, sizeof(btn_decription) * (adc_conf[i].total_steps));
+-        node->next = NULL;
+-        if (NULL == head) {
+-            head = node;
+-            find = head;
+-        } else {
+-            find->next = node;
+-            find = node;
++    }
++#endif  /* ADC_CALI_SCHEME_CURVE_FITTING_SUPPORTED */
++
++#if ADC_CALI_SCHEME_LINE_FITTING_SUPPORTED
++    if (!calibrated) {
++        ESP_LOGI(TAG, "Calibration scheme version is Line Fitting");
++        adc_cali_line_fitting_config_t cali_config = {
++            .unit_id = unit,
++            .atten = atten,
++            .bitwidth = ADC_BITWIDTH_DEFAULT,
++        };
++        ret = adc_cali_create_scheme_line_fitting(&cali_config, &handle);
++        if (ret == ESP_OK) {
++            calibrated = true;
+         }
+     }
+-    return head;
++#endif
++
++    *out_handle = handle;
++    if (ret == ESP_OK) {
++        ESP_LOGI(TAG, "Calibration Success");
++    } else if (ret == ESP_ERR_NOT_SUPPORTED || !calibrated) {
++        ESP_LOGW(TAG, "EFuse not burnt, skip software calibration");
++    } else {
++        ESP_LOGE(TAG, "Invalid arg or no memory");
++    }
++
++    return calibrated;
+ }
+ 
+-esp_err_t adc_btn_destroy_list(adc_btn_list *head)
++static void adc_calibration_deinit(adc_cali_handle_t handle)
+ {
+-    if (head == NULL) {
+-        ESP_LOGD(TAG, "The head of list is null");
+-        return ESP_OK;
+-    }
+-    adc_btn_list *find = head;
+-    adc_btn_list *tmp = find;
++#if ADC_CALI_SCHEME_CURVE_FITTING_SUPPORTED
++    ESP_LOGI(TAG, "Deregister Curve Fitting calibration scheme");
++    ESP_ERROR_CHECK(adc_cali_delete_scheme_curve_fitting(handle));
+ 
+-    while (find) {
+-        adc_arr_t *info = &(find->adc_info);
+-        tmp = find->next;
+-        audio_free(find->btn_dscp);
+-        audio_free(info->adc_level_step);
+-        audio_free(find);
+-        find = tmp;
+-    }
+-    return ESP_OK;
++#elif ADC_CALI_SCHEME_LINE_FITTING_SUPPORTED
++    ESP_LOGI(TAG, "Deregister Line Fitting calibration scheme");
++    ESP_ERROR_CHECK(adc_cali_delete_scheme_line_fitting(handle));
++#endif
+ }
+ 
+-static int get_adc_voltage(int channel)
++#endif  /* !ADC_LEGACY_API */
++
++static int get_adc_voltage(int unit, int channel)
+ {
+-    uint32_t data[ADC_SAMPLES_NUM] = { 0 };
+-    uint32_t sum = 0;
+     int tmp = 0;
++    uint32_t sum = 0;
++    uint32_t data[ADC_SAMPLES_NUM] = {0};
++
+ #if CONFIG_IDF_TARGET_ESP32 || CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S3
++#if ADC_LEGACY_API
+     esp_adc_cal_characteristics_t characteristics;
+ #if CONFIG_IDF_TARGET_ESP32
+-    esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_11db, ADC_WIDTH_12Bit, V_REF, &characteristics);
++    esp_adc_cal_characterize(unit, ADC_ATTEN_11db, ADC_WIDTH_12Bit, V_REF, &characteristics);
+ #elif CONFIG_IDF_TARGET_ESP32S2
+-    esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_11db, ADC_WIDTH_BIT_13, 0, &characteristics);
++    esp_adc_cal_characterize(unit, ADC_ATTEN_11db, ADC_WIDTH_13Bit, 0, &characteristics);
+ #else
+-    esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_11db, ADC_WIDTH_12Bit, 0, &characteristics);
+-#endif
+-
++    esp_adc_cal_characterize(unit, ADC_ATTEN_11db, ADC_WIDTH_12Bit, 0, &characteristics);
++#endif  /* CONFIG_IDF_TARGET_ESP32 */
+     for (int i = 0; i < ADC_SAMPLES_NUM; ++i) {
+         esp_adc_cal_get_voltage(channel, &characteristics, &data[i]);
+     }
+-#endif
++
++#else  /* ADC_LEGACY_API */
++
++    int adc_raw[ADC_SAMPLES_NUM];
++    int voltage[ADC_SAMPLES_NUM];
++    if (s_adc_cali_chan_handle == NULL) {
++        adc_calibration_init(unit, channel, ADC_ATTEN_12db, &s_adc_cali_chan_handle);
++    }
++
++    for (int i = 0; i < ADC_SAMPLES_NUM; ++i) {
++        ESP_ERROR_CHECK(adc_oneshot_read(s_adc_oneshot_handle, channel, &adc_raw[i]));
++        ESP_LOGD(TAG, "ADC[%d] Channel[%d] Raw Data: %d", unit + 1, channel, adc_raw[i]);
++        if (s_adc_cali_chan_handle != NULL) {
++            ESP_ERROR_CHECK(adc_cali_raw_to_voltage(s_adc_cali_chan_handle, adc_raw[i], &voltage[i]));
++            ESP_LOGD(TAG, "ADC[%d] Channel[%d] Cali Voltage: %d mV", unit + 1, channel, voltage[i]);
++            data[i] = voltage[i];
++        }
++    }
++#endif  /* ADC_LEGACY_API */
++#endif  /* CONFIG_IDF_TARGET_ESP32 || CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S3 */
+     for (int j = 0; j < ADC_SAMPLES_NUM - 1; j++) {
+         for (int i = 0; i < ADC_SAMPLES_NUM - j - 1; i++) {
+             if (data[i] > data[i + 1]) {
+@@ -170,8 +192,9 @@ static int get_adc_voltage(int channel)
+             }
+         }
+     }
+-    for (int num = 1; num < ADC_SAMPLES_NUM - 1; num++)
++    for (int num = 1; num < ADC_SAMPLES_NUM - 1; num++) {
+         sum += data[num];
++    }
+     return (sum / (ADC_SAMPLES_NUM - 2));
+ }
+ 
+@@ -180,7 +203,7 @@ static int get_button_id(adc_btn_list *node, int adc)
+     int m = ADC_BTN_INVALID_ID;
+     adc_arr_t *info = &(node->adc_info);
+     for (int i = 0; i < info->total_steps; i++) {
+-        ESP_LOGV(TAG, "max:%d, adc:%d, i:%d, %d, %d", info->total_steps, adc, i, info->adc_level_step[i], info->adc_level_step[i + 1]);
++        ESP_LOGV(TAG, "Max:%d, ADC:%d, i:%d, %d, %d", info->total_steps, adc, i, info->adc_level_step[i], info->adc_level_step[i + 1]);
+         if ((adc > info->adc_level_step[i])
+             && (adc <= info->adc_level_step[i + 1])) {
+             m = i;
+@@ -215,10 +238,10 @@ static adc_btn_state_t get_adc_btn_state(int adc_value, int act_id, adc_btn_list
+         // Have old act ID, new id is invalid
+         // Need to send release event
+         if (btn_dscp[act_id].click_cnt < (info->press_judge_time / ADC_BTN_DETECT_TIME_MS)) {
+-            ESP_LOGD(TAG, "pressed: Act ID:%d, ID:%d, Cnt:%d", act_id, id, btn_dscp[act_id].click_cnt);
++            ESP_LOGD(TAG, "Pressed: Act ID:%d, ID:%d, Cnt:%d", act_id, id, btn_dscp[act_id].click_cnt);
+             st = ADC_BTN_STATE_RELEASE;
+         } else {
+-            ESP_LOGD(TAG, "long press release: Act ID:%d, ID:%d, Cnt:%d", act_id, id, btn_dscp[act_id].click_cnt);
++            ESP_LOGD(TAG, "Long press release: Act ID:%d, ID:%d, Cnt:%d", act_id, id, btn_dscp[act_id].click_cnt);
+             st = ADC_BTN_STATE_LONG_RELEASE;
+         }
+         btn_dscp[act_id].active_id = -1;
+@@ -249,10 +272,10 @@ static adc_btn_state_t get_adc_btn_state(int adc_value, int act_id, adc_btn_list
+         // Have old act ID, new id is invalid
+         // Need to send release event
+         if (btn_dscp[act_id].click_cnt < (info->press_judge_time / ADC_BTN_DETECT_TIME_MS)) {
+-            ESP_LOGD(TAG, "pressed: Act ID:%d, ID:%d, Cnt:%d", act_id, id, btn_dscp[act_id].click_cnt);
++            ESP_LOGD(TAG, "Pressed: Act ID:%d, ID:%d, Cnt:%d", act_id, id, btn_dscp[act_id].click_cnt);
+             return ADC_BTN_STATE_RELEASE;
+         } else {
+-            ESP_LOGD(TAG, "long press release: Act ID:%d, ID:%d, Cnt:%d", act_id, id, btn_dscp[act_id].click_cnt);
++            ESP_LOGD(TAG, "Long press release: Act ID:%d, ID:%d, Cnt:%d", act_id, id, btn_dscp[act_id].click_cnt);
+             return ADC_BTN_STATE_LONG_RELEASE;
+         }
+     }
+@@ -267,7 +290,7 @@ static adc_btn_state_t get_adc_btn_state(int adc_value, int act_id, adc_btn_list
+     }
+     if (btn_dscp[act_id].click_cnt >= (info->press_judge_time / ADC_BTN_DETECT_TIME_MS)) {
+         //Send long click event.
+-        ESP_LOGD(TAG, "long press: Act ID:%d, ID:%d, Cnt:%d", act_id, id, btn_dscp[act_id].click_cnt);
++        ESP_LOGD(TAG, "Long press: Act ID:%d, ID:%d, Cnt:%d", act_id, id, btn_dscp[act_id].click_cnt);
+         st = ADC_BTN_STATE_LONG_PRESSED;
+         btn_dscp[act_id].long_click = 1;
+     }
+@@ -276,16 +299,19 @@ static adc_btn_state_t get_adc_btn_state(int adc_value, int act_id, adc_btn_list
+ 
+ static void button_task(void *parameters)
+ {
+-    _task_flag = true;
++    s_task_flag = true;
+     adc_btn_tag_t *tag = (adc_btn_tag_t *)parameters;
+     adc_btn_list *head = tag->head;
+     adc_btn_list *find = head;
+-    xEventGroupClearBits(g_event_bit, DESTROY_BIT);
++    xEventGroupClearBits(s_event_bit, DESTROY_BIT);
++
++#if ADC_LEGACY_API
++
+ #if CONFIG_IDF_TARGET_ESP32S2
+     adc1_config_width(ADC_WIDTH_BIT_13);
+ #else
+     adc1_config_width(ADC_WIDTH_BIT_12);
+-#endif
++#endif  /* CONFIG_IDF_TARGET_ESP32S2 */
+ 
+     while (find) {
+         adc_arr_t *info = &(find->adc_info);
+@@ -297,38 +323,70 @@ static void button_task(void *parameters)
+ 
+ #if defined ENABLE_ADC_VOLUME
+     adc1_config_channel_atten(DIAL_adc_ch, ADC_ATTEN_11db);
++#endif  /* ENABLE_ADC_VOLUME */
++
++#else  /* ADC_LEGACY_API */
++
++    adc_arr_t *info = &(head->adc_info);
++    adc_oneshot_unit_init_cfg_t init_config1 = {
++        .unit_id = info->adc_unit,
++    };
++    ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config1, &s_adc_oneshot_handle));
++
++    adc_oneshot_chan_cfg_t config = {
++        .atten = ADC_ATTEN_12db,
++#if CONFIG_IDF_TARGET_ESP32S2
++        .bitwidth = ADC_WIDTH_13Bit,
++#else
++        .bitwidth = ADC_WIDTH_12Bit,
++#endif  /* CONFIG_IDF_TARGET_ESP32S2 */
++    };
++    while (find) {
++        adc_arr_t *info = &(find->adc_info);
++        reset_btn(find->btn_dscp, info->total_steps);
++        ESP_ERROR_CHECK(adc_oneshot_config_channel(s_adc_oneshot_handle, info->adc_ch, &config));
++        find = find->next;
++    }
++    find = head;
++
++#if defined ENABLE_ADC_VOLUME
++    ESP_ERROR_CHECK(adc_oneshot_config_channel(s_adc_oneshot_handle, DIAL_adc_ch, &config));
++#endif  /* ENABLE_ADC_VOLUME */
++#endif  /* ADC_LEGACY_API */
++
++#if defined ENABLE_ADC_VOLUME
+     short adc_vol_prev = ADC_BTN_INVALID_ID;
+     short adc_vol_cur = ADC_BTN_INVALID_ID;
+-    short internal_time_ms = DIAL_VOL_INTERVAL_TIME_MS / ADC_SAMPLE_INTERVAL_TIME_MS; /// 10 * 10 = 100ms
++    short internal_time_ms = DIAL_VOL_INTERVAL_TIME_MS / ADC_SAMPLE_INTERVAL_TIME_MS;  // 10 * 10 = 100ms
+     static bool empty_flag;
+     static bool full_flag;
+     bool is_first_time = true;
+-#endif // ENABLE_ADC_VOLUME
++#endif  /* ENABLE_ADC_VOLUME */
+ 
+     static adc_btn_state_t cur_state = ADC_BTN_STATE_ADC;
+     adc_btn_state_t btn_st = ADC_BTN_STATE_IDLE;
+     int cur_act_id = ADC_BTN_INVALID_ACT_ID;
+-    while (_task_flag) {
++    while (s_task_flag) {
+ #if defined ENABLE_ADC_VOLUME
+         if (internal_time_ms == 0) {
+-            adc_vol_cur = get_adc_voltage(DIAL_adc_ch);
++            adc_vol_cur = get_adc_voltage(info->adc_unit, DIAL_adc_ch);
+             internal_time_ms = DIAL_VOL_INTERVAL_TIME_MS / ADC_SAMPLE_INTERVAL_TIME_MS;
+             if (adc_vol_prev > 0) {
+                 short n = abs(adc_vol_cur - adc_vol_prev);
+                 if (is_first_time) {
+                     is_first_time = false;
+                 }
+-                if (adc_vol_cur < 200) {
++                if (adc_vol_cur < ADC_VOL_EMPTY_THRESHOLD) {
+                     if (empty_flag == false) {
+                         ESP_LOGI(TAG, "ABS_LOW:%d, %d->0", n, adc_vol_cur / 25);
+                         empty_flag = true;
+                     }
+-                } else if (adc_vol_cur > 2500) {
++                } else if (adc_vol_cur > ADC_VOL_FULL_THRESHOLD) {
+                     if (full_flag == false) {
+                         ESP_LOGI(TAG, "ABS_HIGH:%d, %d->100", n, adc_vol_cur / 25);
+                         full_flag = true;
+                     }
+-                } else if (n > 80) {
++                } else if (n > ADC_VOL_DIFF_THRESHOLD) {
+                     empty_flag = false;
+                     full_flag = false;
+                 }
+@@ -344,70 +402,157 @@ static void button_task(void *parameters)
+             btn_decription *btn_dscp = find->btn_dscp;
+             switch (cur_state) {
+                 case ADC_BTN_STATE_ADC: {
+-                        int adc = get_adc_voltage(info->adc_ch);
+-                        ESP_LOGD(TAG, "ADC:%d", adc);
+-                        for (int i = 0; i < info->total_steps; ++i) {
+-                            if (btn_dscp[i].active_id > ADC_BTN_INVALID_ID) {
+-                                act_id = i;
+-                                break;
+-                            }
+-                        }
+-                        btn_st = get_adc_btn_state(adc, act_id, find);
+-                        if (btn_st != ADC_BTN_STATE_IDLE) {
+-                            cur_act_id = act_id;
+-                            cur_state = btn_st;
+-                            ESP_LOGD(TAG, "ADC ID:%d", act_id);
++                    int adc = get_adc_voltage(info->adc_unit, info->adc_ch);
++                    ESP_LOGD(TAG, "ADC Voltage: %d", adc);
++                    for (int i = 0; i < info->total_steps; ++i) {
++                        if (btn_dscp[i].active_id > ADC_BTN_INVALID_ID) {
++                            act_id = i;
++                            break;
+                         }
+-                        break;
+                     }
+-                case ADC_BTN_STATE_PRESSED: {
+-                        tag->btn_callback((void *)tag->user_data, info->adc_ch, cur_act_id, ADC_BTN_STATE_PRESSED);
+-                        cur_state = ADC_BTN_STATE_ADC;
+-                        break;
++                    btn_st = get_adc_btn_state(adc, act_id, find);
++                    if (btn_st != ADC_BTN_STATE_IDLE) {
++                        cur_act_id = act_id;
++                        cur_state = btn_st;
++                        ESP_LOGD(TAG, "ADC ID:%d", act_id);
+                     }
++                    break;
++                }
++                case ADC_BTN_STATE_PRESSED: {
++                    tag->btn_callback((void *)tag->user_data, info->adc_ch, cur_act_id, ADC_BTN_STATE_PRESSED);
++                    cur_state = ADC_BTN_STATE_ADC;
++                    break;
++                }
+                 case ADC_BTN_STATE_LONG_PRESSED: {
+-                        tag->btn_callback((void *)tag->user_data, info->adc_ch, cur_act_id, ADC_BTN_STATE_LONG_PRESSED);
+-                        cur_state = ADC_BTN_STATE_ADC;
+-                        break;
+-                    }
++                    tag->btn_callback((void *)tag->user_data, info->adc_ch, cur_act_id, ADC_BTN_STATE_LONG_PRESSED);
++                    cur_state = ADC_BTN_STATE_ADC;
++                    break;
++                }
+                 case ADC_BTN_STATE_LONG_RELEASE: {
+-                        tag->btn_callback((void *)tag->user_data, info->adc_ch, cur_act_id, ADC_BTN_STATE_LONG_RELEASE);
+-                        cur_state = ADC_BTN_STATE_ADC;
+-                        break;
+-                    }
++                    tag->btn_callback((void *)tag->user_data, info->adc_ch, cur_act_id, ADC_BTN_STATE_LONG_RELEASE);
++                    cur_state = ADC_BTN_STATE_ADC;
++                    break;
++                }
+                 case ADC_BTN_STATE_RELEASE: {
+-                        tag->btn_callback((void *)tag->user_data, info->adc_ch, cur_act_id, ADC_BTN_STATE_RELEASE);
+-                        cur_state = ADC_BTN_STATE_ADC;
+-                        break;
+-                    }
++                    tag->btn_callback((void *)tag->user_data, info->adc_ch, cur_act_id, ADC_BTN_STATE_RELEASE);
++                    cur_state = ADC_BTN_STATE_ADC;
++                    break;
++                }
+                 default:
+                     ESP_LOGE(TAG, "Not support state %d", cur_state);
+                     break;
+             }
+             find = find->next;
+         }
+-#endif // ENABLE_ADC_VOLUME
++#endif  /* ENABLE_ADC_VOLUME */
+ 
+         vTaskDelay(ADC_SAMPLE_INTERVAL_TIME_MS / portTICK_PERIOD_MS);
+     }
+ 
+-    if (g_event_bit) {
+-        xEventGroupSetBits(g_event_bit, DESTROY_BIT);
++#if !ADC_LEGACY_API
++    ESP_ERROR_CHECK(adc_oneshot_del_unit(s_adc_oneshot_handle));
++    if (s_adc_cali_chan_handle != NULL) {
++        adc_calibration_deinit(s_adc_cali_chan_handle);
++        s_adc_cali_chan_handle = NULL;
++    }
++#endif  /* !ADC_LEGACY_API */
++
++    if (s_event_bit) {
++        xEventGroupSetBits(s_event_bit, DESTROY_BIT);
+     }
+     audio_free(tag);
+     vTaskDelete(NULL);
+ }
+ 
++adc_btn_list *adc_btn_create_list(adc_arr_t *adc_conf, int channels)
++{
++    adc_btn_list *head = NULL;
++    adc_btn_list *node = NULL;
++    adc_btn_list *find = NULL;
++    for (int i = 0; i < channels; i++) {
++        node = (adc_btn_list *)audio_calloc(1, sizeof(adc_btn_list));
++        if (NULL == node) {
++            ESP_LOGE(TAG, "Memory allocation failed! Line: %d", __LINE__);
++            goto create_list_fail;
++        }
++        memset(node, 0, sizeof(adc_btn_list));
++        adc_arr_t *info = &(node->adc_info);
++        memcpy(info, adc_conf + i, sizeof(adc_arr_t));
++        int step_num = info->total_steps + 1;
++        if (step_num > USER_KEY_MAX) {
++            ESP_LOGW(TAG, "Step_num(%d) > USER_KEY_MAX(%d), clamp to USER_KEY_MAX", step_num, USER_KEY_MAX);
++            step_num = USER_KEY_MAX;
++        }
++        info->adc_level_step = (int *)audio_calloc(1, step_num * sizeof(int));
++        if (NULL == info->adc_level_step) {
++            ESP_LOGE(TAG, "Memory allocation failed! Line: %d", __LINE__);
++            audio_free(node);
++            goto create_list_fail;
++        }
++        memset(info->adc_level_step, 0, step_num * sizeof(int));
++        if (adc_conf[i].adc_level_step == NULL) {
++            memcpy(info->adc_level_step, s_default_step_level, USER_KEY_MAX * sizeof(int));
++        } else {
++            memcpy(info->adc_level_step, adc_conf[i].adc_level_step, step_num * sizeof(int));
++        }
++        node->btn_dscp = (btn_decription *)audio_calloc(1, sizeof(btn_decription) * (adc_conf[i].total_steps));
++        if (NULL == node->btn_dscp) {
++            ESP_LOGE(TAG, "Memory allocation failed! Line: %d", __LINE__);
++            audio_free(info->adc_level_step);
++            audio_free(node);
++            goto create_list_fail;
++        }
++        memset(node->btn_dscp, 0, sizeof(btn_decription) * (adc_conf[i].total_steps));
++        node->next = NULL;
++        if (NULL == head) {
++            head = node;
++            find = head;
++        } else {
++            find->next = node;
++            find = node;
++        }
++    }
++    return head;
++
++create_list_fail:
++    adc_btn_destroy_list(head);
++    return NULL;
++}
++
++esp_err_t adc_btn_destroy_list(adc_btn_list *head)
++{
++    if (head == NULL) {
++        ESP_LOGD(TAG, "The head of list is null");
++        return ESP_OK;
++    }
++    adc_btn_list *find = head;
++    adc_btn_list *tmp = find;
++
++    while (find) {
++        adc_arr_t *info = &(find->adc_info);
++        tmp = find->next;
++        if (find->btn_dscp) {
++            audio_free(find->btn_dscp);
++        }
++        if (info->adc_level_step) {
++            audio_free(info->adc_level_step);
++        }
++        audio_free(find);
++        find = tmp;
++    }
++    return ESP_OK;
++}
++
+ void adc_btn_delete_task(void)
+ {
+-    if (_task_flag) {
+-        _task_flag = false;
++    if (s_task_flag) {
++        s_task_flag = false;
+     }
+ 
+-    if (g_event_bit) {
+-        xEventGroupWaitBits(g_event_bit, DESTROY_BIT, pdTRUE, pdFALSE, portMAX_DELAY);
+-        vEventGroupDelete(g_event_bit);
+-        g_event_bit = NULL;
++    if (s_event_bit) {
++        xEventGroupWaitBits(s_event_bit, DESTROY_BIT, pdTRUE, pdFALSE, portMAX_DELAY);
++        vEventGroupDelete(s_event_bit);
++        s_event_bit = NULL;
+     }
+ }
+ 
+@@ -422,13 +567,18 @@ void adc_btn_init(void *user_data, adc_button_callback cb, adc_btn_list *head, a
+     tag->head = head;
+     tag->btn_callback = cb;
+ 
+-    g_event_bit = xEventGroupCreate();
++    s_event_bit = xEventGroupCreate();
+ 
+-    audio_thread_create(&tag->audio_thread,
++    if (audio_thread_create(&tag->audio_thread,
+                         "button_task", button_task,
+                         (void *)tag,
+                         task_cfg->task_stack,
+                         task_cfg->task_prio,
+                         task_cfg->ext_stack,
+-                        task_cfg->task_core);
++                        task_cfg->task_core) != 0) {
++        ESP_LOGE(TAG, "Create button_task failed!");
++        audio_free(tag);
++        vEventGroupDelete(s_event_bit);
++        s_event_bit = NULL;
++    }
+ }
+diff --git a/components/esp_peripherals/lib/adc_button/adc_button.h b/components/esp_peripherals/lib/adc_button/adc_button.h
+index 12c333187..6c0c40e57 100644
+--- a/components/esp_peripherals/lib/adc_button/adc_button.h
++++ b/components/esp_peripherals/lib/adc_button/adc_button.h
+@@ -29,7 +29,47 @@
+ extern "C" {
+ #endif
+ 
++#ifndef ADC_LEGACY_API
++#if CONFIG_ADC_SUPPRESS_DEPRECATE_WARN || CONFIG_ADC_CALI_SUPPRESS_DEPRECATE_WARN
++#define ADC_LEGACY_API  true
++#else
++#define ADC_LEGACY_API  false
++#endif  /* CONFIG_ADC_CALI_SUPPRESS_DEPRECATE_WARN || CONFIG_ADC_SUPPRESS_DEPRECATE_WARN */
++#endif  /* ADC_LEGACY_API */
++
+ #include "esp_err.h"
++#if ADC_LEGACY_API
++#include "driver/adc.h"
++#include "esp_adc_cal.h"
++#endif  /* ADC_LEGACY_API */
++#if !ADC_LEGACY_API
++#include "esp_adc/adc_oneshot.h"
++#endif  /* !ADC_LEGACY_API */
++
++#if ADC_LEGACY_API
++/* Provide default ADC channel macros if not defined externally. */
++#ifndef ADC_CHANNEL_0
++#define ADC_CHANNEL_0  ADC1_CHANNEL_0
++#endif
++#ifndef ADC_CHANNEL_1
++#define ADC_CHANNEL_1  ADC1_CHANNEL_1
++#endif
++#ifndef ADC_CHANNEL_2
++#define ADC_CHANNEL_2  ADC1_CHANNEL_2
++#endif
++#ifndef ADC_CHANNEL_3
++#define ADC_CHANNEL_3  ADC1_CHANNEL_3
++#endif
++#ifndef ADC_CHANNEL_4
++#define ADC_CHANNEL_4  ADC1_CHANNEL_4
++#endif
++#ifndef ADC_CHANNEL_5
++#define ADC_CHANNEL_5  ADC1_CHANNEL_5
++#endif
++#ifndef ADC_CHANNEL_6
++#define ADC_CHANNEL_6  ADC1_CHANNEL_6
++#endif
++#endif  /* ADC_LEGACY_API */
+ 
+ typedef enum {
+     USER_KEY_ID0,
+@@ -43,6 +83,7 @@ typedef enum {
+ } user_key_id_num;
+ 
+ typedef struct {
++    int adc_unit;
+     int adc_ch;
+     int *adc_level_step;
+     int total_steps;
+diff --git a/components/esp_peripherals/periph_adc_button.c b/components/esp_peripherals/periph_adc_button.c
+index e4cf8850c..6636762da 100644
+--- a/components/esp_peripherals/periph_adc_button.c
++++ b/components/esp_peripherals/periph_adc_button.c
+@@ -56,9 +56,15 @@ static void btn_cb(void *user_data, int adc, int id, adc_btn_state_t state)
+ static esp_err_t _adc_button_destroy(esp_periph_handle_t self)
+ {
+     periph_adc_btn_t *periph_adc_btn = esp_periph_get_data(self);
++    if ( NULL == periph_adc_btn) {
++        return ESP_OK;
++    }
+     adc_btn_delete_task();
+-    adc_btn_destroy_list(periph_adc_btn->list);
++    if (periph_adc_btn->list) {
++        adc_btn_destroy_list(periph_adc_btn->list);
++    }
+     audio_free(periph_adc_btn);
++    esp_periph_set_data(self, NULL);
+     return ESP_OK;
+ }
+ 
+@@ -83,8 +89,8 @@ esp_periph_handle_t periph_adc_button_init(periph_adc_button_cfg_t *config)
+     periph_adc_btn->list = adc_btn_create_list(config->arr, config->arr_size);
+     memcpy(&periph_adc_btn->task_cfg, &config->task_cfg, sizeof(adc_btn_task_cfg_t));
+     AUDIO_MEM_CHECK(TAG, periph_adc_btn->list, {
+-        audio_free(periph);
+         audio_free(periph_adc_btn);
++        audio_free(periph);
+         return NULL;
+     });
+ 
+diff --git a/components/esp_peripherals/test_apps/CMakeLists.txt b/components/esp_peripherals/test_apps/CMakeLists.txt
+new file mode 100644
+index 000000000..e06b6408a
+--- /dev/null
++++ b/components/esp_peripherals/test_apps/CMakeLists.txt
+@@ -0,0 +1,10 @@
++# This is the project CMakeLists.txt file for the test subproject 
++cmake_minimum_required(VERSION 3.5)
++
++set(EXTRA_COMPONENT_DIRS  "$ENV{IDF_PATH}/tools/unit-test-app/components"
++                           "../")
++
++add_compile_options(-fdiagnostics-color=always)
++include($ENV{IDF_PATH}/tools/cmake/project.cmake)
++include($ENV{ADF_PATH}/CMakeLists.txt)
++project(test_app)
+diff --git a/components/esp_peripherals/test_apps/main/CMakeLists.txt b/components/esp_peripherals/test_apps/main/CMakeLists.txt
+new file mode 100644
+index 000000000..dba9c9833
+--- /dev/null
++++ b/components/esp_peripherals/test_apps/main/CMakeLists.txt
+@@ -0,0 +1,5 @@
++idf_component_register(SRC_DIRS .
++                       PRIV_INCLUDE_DIRS .
++                       PRIV_REQUIRES unity nvs_flash esp_event audio_hal driver audio_sal console audio_pipeline audio_board esp_peripherals
++                       WHOLE_ARCHIVE TRUE
++                       )
+diff --git a/components/esp_peripherals/test_apps/main/esp_periph_test.c b/components/esp_peripherals/test_apps/main/esp_periph_test.c
+new file mode 100644
+index 000000000..f00ac047a
+--- /dev/null
++++ b/components/esp_peripherals/test_apps/main/esp_periph_test.c
+@@ -0,0 +1,109 @@
++/*
++ * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO., LTD
++ *
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++#include <string.h>
++#include <unistd.h>
++#include "freertos/FreeRTOS.h"
++#include "freertos/task.h"
++#include "audio_event_iface.h"
++#include "esp_log.h"
++#include "esp_err.h"
++
++#include "unity.h"
++#include "nvs_flash.h"
++#include "audio_mem.h"
++#include "esp_peripherals.h"
++#include "periph_adc_button.h"
++#include "board.h"
++
++static const char *TAG = "ESP_PERIPH_TEST";
++
++#define TEST_PERIPHERALS_MEMORY_LEAK_TIMES  1000
++
++static void periph_adc_button_test(void)
++{
++    ESP_LOGI(TAG, "Set up peripherals handle");
++    esp_periph_config_t periph_cfg = DEFAULT_ESP_PERIPH_SET_CONFIG();
++    esp_periph_set_handle_t set = esp_periph_set_init(&periph_cfg);
++    TEST_ASSERT_NOT_NULL(set);
++
++    ESP_LOGI(TAG, "Register ADC button to peripherals");
++    periph_adc_button_cfg_t adc_btn_cfg = PERIPH_ADC_BUTTON_DEFAULT_CONFIG();
++    adc_arr_t adc_btn_tag = ADC_DEFAULT_ARR();
++    adc_btn_tag.total_steps = 6;
++#if CONFIG_IDF_TARGET_ESP32S3
++    adc_btn_tag.adc_ch = ADC_CHANNEL_4;
++    int btn_array[7] = {190, 600, 1000, 1375, 1775, 2195, 3100};
++#elif CONFIG_IDF_TARGET_ESP32S2
++    adc_btn_tag.adc_ch = ADC_CHANNEL_5;
++    int btn_array[7] = {190, 600, 1000, 1375, 1775, 2195, 2510};
++#elif CONFIG_IDF_TARGET_ESP32C3
++    adc_btn_tag.adc_ch = ADC_CHANNEL_2;
++    int btn_array[7] = {190, 600, 1000, 1375, 1775, 2195, 2700};
++#else
++    int btn_array[7] = {190, 600, 1000, 1375, 1775, 2195, 3100};
++#endif
++    adc_btn_tag.adc_level_step = btn_array;
++    adc_btn_cfg.arr = &adc_btn_tag;
++    adc_btn_cfg.arr_size = 1;
++    esp_periph_handle_t adc_btn_handle = periph_adc_button_init(&adc_btn_cfg);
++    TEST_ASSERT_NOT_NULL(adc_btn_handle);
++
++    TEST_ASSERT_FALSE(esp_periph_start(set, adc_btn_handle));
++
++    ESP_LOGI(TAG, "Set up event listener");
++    audio_event_iface_cfg_t evt_cfg = AUDIO_EVENT_IFACE_DEFAULT_CFG();
++    audio_event_iface_handle_t evt = audio_event_iface_init(&evt_cfg);
++    TEST_ASSERT_NOT_NULL(evt);
++
++    ESP_LOGI(TAG, "Listening event from peripherals");
++    TEST_ASSERT_FALSE(audio_event_iface_set_listener(esp_periph_set_get_event_iface(set), evt));
++
++    ESP_LOGI(TAG, "Test start, please press buttons on the board ... ");
++    while (1) {
++        audio_event_iface_msg_t msg;
++        TEST_ASSERT_FALSE(audio_event_iface_listen(evt, &msg, portMAX_DELAY));
++        ESP_LOGI(TAG, "action: %d, act id: %d", msg.cmd, (int)msg.data);
++        if ((int)msg.data == 0) {
++            ESP_LOGW(TAG, "press id 0, quit test");
++            break;
++        }
++    }
++
++    ESP_LOGI(TAG, "Quit test, release all resources");
++    TEST_ASSERT_FALSE(esp_periph_set_stop_all(set));
++    TEST_ASSERT_FALSE(audio_event_iface_remove_listener(esp_periph_set_get_event_iface(set), evt));
++    TEST_ASSERT_FALSE(audio_event_iface_destroy(evt));
++    TEST_ASSERT_FALSE(esp_periph_set_destroy(set));
++}
++
++TEST_CASE("adc button test", "[peripherals]")
++{
++    AUDIO_MEM_SHOW(TAG);
++    periph_adc_button_test();
++    vTaskDelay(1000 / portTICK_RATE_MS);
++    AUDIO_MEM_SHOW(TAG);
++}
++
++TEST_CASE("esp_periph memory test", "[peripherals]")
++{
++    AUDIO_MEM_SHOW(TAG);
++    int test_count = TEST_PERIPHERALS_MEMORY_LEAK_TIMES;
++    while (test_count--) {
++        printf("-------Residual times: %d -------\n", test_count);
++        ESP_LOGI(TAG, "Init ADC button to peripherals");
++        periph_adc_button_cfg_t adc_btn_cfg = PERIPH_ADC_BUTTON_DEFAULT_CONFIG();
++        adc_arr_t adc_btn_tag = ADC_DEFAULT_ARR();
++        adc_btn_cfg.arr = &adc_btn_tag;
++        esp_periph_handle_t adc_btn_handle = periph_adc_button_init(&adc_btn_cfg);
++        TEST_ASSERT_NOT_NULL(adc_btn_handle);
++
++        ESP_LOGI(TAG, "Destroy ADC button to peripherals");
++        TEST_ASSERT_FALSE(esp_periph_destroy(adc_btn_handle));
++    }
++    vTaskDelay(1000 / portTICK_RATE_MS);
++    AUDIO_MEM_SHOW(TAG);
++}
+diff --git a/components/esp_peripherals/test_apps/main/idf_components.yml b/components/esp_peripherals/test_apps/main/idf_components.yml
+new file mode 100644
+index 000000000..f5001494e
+--- /dev/null
++++ b/components/esp_peripherals/test_apps/main/idf_components.yml
+@@ -0,0 +1,3 @@
++dependencies:
++  test_utils:
++    path: ${IDF_PATH}/tools/unit-test-app/components/test_utils
+diff --git a/components/esp_peripherals/test_apps/main/test_app_main.c b/components/esp_peripherals/test_apps/main/test_app_main.c
+new file mode 100644
+index 000000000..9a7e8a82f
+--- /dev/null
++++ b/components/esp_peripherals/test_apps/main/test_app_main.c
+@@ -0,0 +1,32 @@
++/*
++ * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO., LTD
++ *
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++#include "nvs_flash.h"
++#include "esp_log.h"
++#include "esp_event.h"
++
++extern void test_main(void);
++
++void app_main()
++{
++    printf(
++    " _                  _                                                    _           _            \n"
++    "| |_    ___   ___  | |_      ___   ___   _ __      _ __     ___   _ __  (_)  _ __   | |__         \n"
++    "| __|  / _ \\ / __| | __|    / _ \\ / __| | '_ \\    | '_ \\   / _ \\ | '__| | | | '_ \\  | '_ \\ \n"
++    "| |_  |  __/ \\__ \\ | |_    |  __/ \\__ \\ | |_) |   | |_) | |  __/ | |    | | | |_) | | | | |   \n"
++    " \\__|  \\___| |___/  \\__|    \\___| |___/ | .__/    | .__/   \\___| |_|    |_| | .__/  |_| |_|  \n"
++    "                                        |_|       |_|                       |_|                   \n"
++    );
++
++    esp_err_t ret = nvs_flash_init();
++    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
++        ESP_ERROR_CHECK(nvs_flash_erase());
++        ret = nvs_flash_init();
++    }
++    ESP_ERROR_CHECK(ret);
++
++    test_main();
++}
+diff --git a/components/esp_peripherals/test_apps/partitions.csv b/components/esp_peripherals/test_apps/partitions.csv
+new file mode 100644
+index 000000000..18caa3bab
+--- /dev/null
++++ b/components/esp_peripherals/test_apps/partitions.csv
+@@ -0,0 +1,4 @@
++# Name,     Type, SubType, Offset,   Size
++nvs,        data, nvs,     0x9000,   0x6000,
++factory,    app,  factory, 0x010000, 1M
++flash_test, data, fat,     ,         0x10,
+diff --git a/components/esp_peripherals/test_apps/sdkconfig.defaults b/components/esp_peripherals/test_apps/sdkconfig.defaults
+new file mode 100644
+index 000000000..12c2d9615
+--- /dev/null
++++ b/components/esp_peripherals/test_apps/sdkconfig.defaults
+@@ -0,0 +1,48 @@
++#
++# Compiler options
++#
++CONFIG_COMPILER_OPTIMIZATION_PERF=y
++# end of Compiler options
++
++#
++# ESP WDT CONFIG
++#
++# CONFIG_TASK_WDT_PANIC is not set
++CONFIG_ESP_TASK_WDT_INIT=n
++CONFIG_TASK_WDT_TIMEOUT_S=10
++# end of ESP WDT CONFIG
++
++#
++# ESP System Settings
++#
++CONFIG_ESP_MAIN_TASK_STACK_SIZE=4096
++# end of ESP System Settings
++
++#
++# ESP-TLS
++#
++CONFIG_ESP_TLS_INSECURE=y
++CONFIG_ESP_TLS_SKIP_SERVER_CERT_VERIFY=y
++# end of ESP-TLS
++
++#
++# FREERTOS
++#
++CONFIG_FREERTOS_ENABLE_BACKWARD_COMPATIBILITY=y
++CONFIG_FREERTOS_TIMER_TASK_STACK_DEPTH=4096
++CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS=y
++CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID=y
++CONFIG_FREERTOS_HZ=1000
++
++#
++# Partition Table
++#
++# CONFIG_PARTITION_TABLE_SINGLE_APP is not set
++# CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE is not set
++# CONFIG_PARTITION_TABLE_TWO_OTA is not set
++CONFIG_PARTITION_TABLE_CUSTOM=y
++CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
++CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
++CONFIG_PARTITION_TABLE_OFFSET=0x8000
++CONFIG_PARTITION_TABLE_MD5=y
++# end of Partition Table
+diff --git a/tools/ci/switch_branch.sh b/tools/ci/switch_branch.sh
+index 340609947..0bc6b9029 100755
+--- a/tools/ci/switch_branch.sh
++++ b/tools/ci/switch_branch.sh
+@@ -6,7 +6,7 @@ set -o errexit
+ 
+ if ! type jq >/dev/null 2>&1;then
+     apt-get update
+-    apt-get install jq -y
++    apt-get install jq -y --fix-missing
+ else
+     echo "The jq tool has been installed"
+ fi
+-- 
+2.34.1
+

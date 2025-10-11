@@ -37,7 +37,7 @@
 #include "volc_conv_ai.h"
 #define ENABLE_BUTTON 0
 #define PRINT_TASK_INFO 0
-#if defined(ENABLE_BUTTON)
+#if (ENABLE_BUTTON != 0)
 #include "iot_button.h"
 #include "button_gpio.h"
 #endif
@@ -253,7 +253,7 @@ static void conv_ai_task(void *pvParameters)
     volc_audio_frame_info_t info = {0};
     info.data_type = VOLC_AUDIO_DATA_TYPE_PCM;
     info.commit = false;
-    while (!is_interrupt)
+    while (1)
     {
         int ret = recorder_pipeline_read(pipeline, (char *)audio_buffer, read_size);
         if (ret == read_size && is_ready)
@@ -275,7 +275,7 @@ static void conv_ai_task(void *pvParameters)
     vTaskDelete(NULL);
 }
 
-#if defined(ENABLE_BUTTON)
+#if (ENABLE_BUTTON != 0)
 static void button_event_cb(void *arg, void *data) {
     button_event_t button_event = iot_button_get_event(arg);
     if (button_event == BUTTON_PRESS_DOWN) {
@@ -292,8 +292,8 @@ void app_main(void)
 {
     /* Initialize the default event loop */
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-    esp_log_level_set("*", ESP_LOG_WARN);
     esp_log_level_set("*", ESP_LOG_INFO);
+    esp_log_level_set(TAG, ESP_LOG_INFO);
 
     /* Initialize NVS flash for WiFi configuration */
     esp_err_t ret = nvs_flash_init();
@@ -329,7 +329,7 @@ void app_main(void)
 
     // Allow other core to finish initialization
     vTaskDelay(pdMS_TO_TICKS(2000));
-#if defined(ENABLE_BUTTON)
+#if (ENABLE_BUTTON != 0)
     button_config_t btn_cfg = { 0 };
     btn_cfg.type = BUTTON_TYPE_ADC;
     btn_cfg.adc_button_config.adc_channel = 4;
@@ -348,7 +348,7 @@ void app_main(void)
 
     // Create and start stats task
     xTaskCreate(&conv_ai_task, "conv_ai_task", 8192, NULL, STATS_TASK_PRIO, NULL);
-#if defined(PRINT_TASK_INFO)
+#if (PRINT_TASK_INFO != 0)
     xTaskCreate(&sys_monitor_task, "sys_monitor_task", 4096, NULL, STATS_TASK_PRIO, NULL);
 #endif
 }

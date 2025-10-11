@@ -61,6 +61,15 @@
    ```bash
    git clone https://github.com/volcengine/ConversationalAI-Embedded-Kit-2.0.git
    ```
+2. 修复乐鑫按键问题
+   1. 进入 esp-adf 目录。
+    ```bash
+    cd $ADF_PATH
+    ```
+   2. 修复乐鑫按键问题。
+    ```bash
+    git apply $ADF_PATH/examples/ConversationalAI-Embedded-Kit-2.0/low_load_first/espressif/0002-fix-esp-button.patch
+    ```
 
 ### 编译固件
 进入 `esp-adf/examples/ConversationalAI-Embedded-Kit-2.0/low_load_first/espressif` 目录下编译固件。

@@ -8,4 +8,5 @@
 - drop text when interrupted
 
 ### Bugs fixed
+- fix esp button error
 

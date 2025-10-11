@@ -70,6 +70,15 @@
     ```bash
     git apply $ADF_PATH/examples/ConversationalAI-Embedded-Kit-2.0/high_quality_first/espressif/0001-feat-disable-volc-esp-libs.patch
     ```
+3. 修复乐鑫按键问题
+   1. 进入 esp-adf 目录。
+    ```bash
+    cd $ADF_PATH
+    ```
+   2. 修复乐鑫按键问题。
+    ```bash
+    git apply $ADF_PATH/examples/ConversationalAI-Embedded-Kit-2.0/high_quality_first/espressif/0002-fix-esp-button.patch
+    ```
 
 ### 编译固件
 进入 `esp-adf/examples/ConversationalAI-Embedded-Kit-2.0/high_quality_first/espressif` 目录下编译固件。
