@@ -46,7 +46,7 @@
 #define WEBSOCKET_TASK_PRIORITY        (4)
 #define WEBSOCKET_TASK_STACK           (4 * 1024)
 #define WEBSOCKET_NETWORK_TIMEOUT_MS   (10 * 1000)
-#define WEBSOCKET_PINGPONG_TIMEOUT_SEC (180)
+#define WEBSOCKET_PINGPONG_TIMEOUT_SEC (540)
 #define WEBSOCKET_PING_INTERVAL_SEC    (10)
 #define WEBSOCKET_RECONNECT_TIMEOUT_MS (5 * 1000)
 #define WEBSOCKET_RX_RETRY_COUNT       (10)
@@ -1025,8 +1025,6 @@ static int volc_ws_client_send_with_opcode(volc_ws_client_t* client, volc_ws_opc
             LOGE("Network error: ws_write() returned %d, errno=%d\r\n", ret, errno);
             if (errno == EAGAIN)
                 LOGE("Network error: ws_write() EAGAIN, drop\r\n");
-            else
-                ws_disconnect(client);
             goto unlock_and_return;
         }
         current_opcode = 0;

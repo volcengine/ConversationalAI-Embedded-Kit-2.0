@@ -9,4 +9,5 @@
 
 ### Bugs fixed
 - fix esp button error
+- fix destroy issue
 

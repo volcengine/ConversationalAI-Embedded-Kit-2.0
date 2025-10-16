@@ -380,7 +380,6 @@ int volc_stop(volc_engine_t handle) {
     default:
         break;
     }
-    engine->mode = VOLC_MODE_UNKNOWN;
 
     engine->status = VOLC_RT_STATE_STOPPED;
     LOGI("engine stopped successfully");
