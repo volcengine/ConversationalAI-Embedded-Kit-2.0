@@ -18,7 +18,7 @@
 
 #define WIFI_EVENT_CONNECTED BIT0
 #define WIFI_EVENT_FAILED BIT1
-#define MAX_RECONNECT_COUNT 50
+#define MAX_RECONNECT_COUNT 5
 
 static network_t network;
 

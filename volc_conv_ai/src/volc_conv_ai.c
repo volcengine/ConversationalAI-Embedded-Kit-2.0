@@ -9,6 +9,7 @@
 #include "util/volc_json.h"
 #include "util/volc_log.h"
 #include "base/volc_device_manager.h"
+#include "base/volc_base.h"
 
 #if defined(ENABLE_RTC_MODE)
 #include "VolcEngineRTCLite.h"

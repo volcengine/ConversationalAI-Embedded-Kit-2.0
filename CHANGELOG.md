@@ -6,6 +6,7 @@
 
 ### Changes
 - drop text when interrupted
+- update dirs
 
 ### Bugs fixed
 - fix esp button error

@@ -2,9 +2,6 @@
 # SPDX-License-Identifier: Apache License 2.0
 
 set(COMPONENT_SRCS "conv_ai_embedded_kit.c pipeline.c configuration_ap.c network.c" )
-if (CONFIG_VOLC_WS_MODE)
-    add_definitions(-DENABLE_WS_MODE)
-endif()
 
 if (CONFIG_PRINT_TASK_INFO)
     add_definitions(-DPRINT_TASK_INFO)
