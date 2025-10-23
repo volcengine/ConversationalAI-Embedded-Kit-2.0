@@ -1,7 +1,7 @@
 menu "Example Configuration"
 
 choice AI_AGENT_MODE
-    prompt "Volcano RTC/WS modee"
+    prompt "Volcano RTC/WS mode"
     default VOLC_WS_MODE
 
     config VOLC_WS_MODE
@@ -35,6 +35,17 @@ config VOLC_BOT_ID
     depends on VOLC_WS_MODE
 
 menu "Develop Configuration"
+
+choice VOLC_AUDIO_CODEC
+    prompt "supported audio codec"
+    default VOLC_AUDIO_G711A
+
+    config VOLC_AUDIO_G711A
+        bool "External G711A codec: 8k G711A data to SDK for upstream; 8k G711A data callback from SDK for downstream"
+    
+    config VOLC_AUDIO_PCM16
+        bool "No audio codec: 16k pcm data to SDK for upstream; 16k pcm data callback from SDK for downstream"
+endchoice
 
 config PRINT_TASK_INFO
     bool "print task info"

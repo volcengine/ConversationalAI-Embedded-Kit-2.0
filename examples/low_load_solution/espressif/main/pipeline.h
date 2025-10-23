@@ -18,6 +18,7 @@ extern "C"
     {
         audio_pipeline_handle_t audio_pipeline;
         audio_element_handle_t i2s_stream_reader;
+        audio_element_handle_t audio_encoder;
         audio_element_handle_t raw_reader;
         audio_element_handle_t rsp;
         audio_element_handle_t algo_aec;
@@ -34,6 +35,7 @@ extern "C"
     {
         audio_pipeline_handle_t audio_pipeline;
         audio_element_handle_t raw_writer;
+        audio_element_handle_t audio_decoder;
         audio_element_handle_t rsp;
         audio_element_handle_t i2s_stream_writer;
     };

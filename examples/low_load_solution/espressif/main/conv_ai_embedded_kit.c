@@ -57,6 +57,8 @@ static volatile bool is_interrupt = false;
   }\
 }"
 
+#define CONV_AI_AUDIO_FORMAT "{\"event_id\":\"%s\",\"type\":\"session.update\",\"session\":{\"object\":\"realtime.session\",\"model\":\"\",\"input_audio_format\":\"g711_alaw\"}}"
+
 typedef struct
 {
     player_pipeline_handle_t player_pipeline;
@@ -65,6 +67,7 @@ typedef struct
 } engine_context_t;
 
 static char config_buf[1024] = {0};
+static char config_audio[256] = {0};
 static engine_context_t engine_ctx = {0};
 static bool is_ready = false;
 
@@ -234,6 +237,11 @@ static void conv_ai_task(void *pvParameters)
     volc_opt_t opt = {
         .mode = VOLC_MODE_WS,
         .bot_id = CONFIG_VOLC_BOT_ID};
+#if (CONFIG_VOLC_AUDIO_G711A)
+    opt.wait_for_session_update = true;
+#else
+    opt.wait_for_session_update = false;
+#endif
     error = volc_start(engine_ctx.engine, &opt);
     if (error != 0)
     {
@@ -241,6 +249,15 @@ static void conv_ai_task(void *pvParameters)
         volc_destroy(engine_ctx.engine);
         return;
     }
+#if (CONFIG_VOLC_AUDIO_G711A)
+    while(!is_ready) {
+        usleep(1000 * 10);
+    }
+    char event_id[32] = { 0 };
+    snprintf(event_id, sizeof(event_id), "event_id_%llu", __get_time_ms());
+    snprintf(config_audio, sizeof(config_audio), CONV_AI_AUDIO_FORMAT, event_id);
+    volc_update(engine_ctx.engine, (const void*)config_audio, strlen(config_audio));
+#endif
 
     int read_size = recorder_pipeline_get_default_read_size(pipeline);
     uint8_t *audio_buffer = heap_caps_malloc(read_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
@@ -251,7 +268,11 @@ static void conv_ai_task(void *pvParameters)
     }
     // step 4: start sending audio data
     volc_audio_frame_info_t info = {0};
+#if (CONFIG_VOLC_AUDIO_G711A)
+    info.data_type = VOLC_AUDIO_DATA_TYPE_G711A;
+#else
     info.data_type = VOLC_AUDIO_DATA_TYPE_PCM;
+#endif
     info.commit = false;
     while (1)
     {
