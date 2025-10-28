@@ -87,6 +87,51 @@ static char config_buf[1024] = {0};
 static engine_context_t engine_ctx = {0};
 static bool is_ready = false;
 
+static bool _is_target_message(const uint8_t* message, const char* target) {
+    if (message == NULL || target == NULL) {
+        return false;
+    }
+    // Check if the first 4 bytes match the magic number for "subv"
+    if (*(const uint32_t*)message != *(const uint32_t*)target) {
+        return false;
+    }
+    return true;
+}
+
+// remote message
+// 字幕消息 参考https://www.volcengine.com/docs/6348/1337284
+static void on_subtitle_message_received(volc_engine_t handle, const cJSON* root) {
+    /*
+        {
+            "data" : 
+            [
+                {
+                    "definite" : false,
+                    "language" : "zh",
+                    "mode" : 1,
+                    "paragraph" : false,
+                    "sequence" : 0,
+                    "text" : "\\u4f60\\u597d",
+                    "userId" : "voiceChat_xxxxx"
+                }
+            ],
+            "type" : "subtitle"
+        }
+    */
+    cJSON * type_obj = cJSON_GetObjectItem(root, "type");
+    if (type_obj != NULL && strcmp("subtitle", cJSON_GetStringValue(type_obj)) == 0) {
+        cJSON* data_obj_arr = cJSON_GetObjectItem(root, "data");
+        cJSON* obji = NULL;
+        cJSON_ArrayForEach(obji, data_obj_arr) {
+            cJSON* user_id_obj = cJSON_GetObjectItem(obji, "userId");
+            cJSON* text_obj = cJSON_GetObjectItem(obji, "text");
+            if (user_id_obj && text_obj) {
+                ESP_LOGE(TAG, "subtitle:%s:%s", cJSON_GetStringValue(user_id_obj), cJSON_GetStringValue(text_obj));
+            }
+        }
+    }
+}
+
 static void _on_volc_event(volc_engine_t handle, volc_event_t *event, void *user_data)
 {
     switch (event->code)
@@ -133,7 +178,34 @@ static void _on_volc_video_data(volc_engine_t handle, const void *data_ptr, size
 
 static void _on_volc_message_data(volc_engine_t handle, const void *message, size_t size, volc_message_info_t *info_ptr, void *user_data)
 {
-    ESP_LOGI(TAG, "Received message: %.*s", (int)size, (const char *)message);
+    // 字幕消息，参考https://www.volcengine.com/docs/6348/1337284
+    // subv|length(4)|json str
+    //
+    // function calling 消息，参考https://www.volcengine.com/docs/6348/1359441
+    // tool|length(4)|json str
+    //
+    // conversion status 消息，参考https://www.volcengine.com/docs/6348/1415216
+    // conv|length(4)|json str
+    static char message_buffer[4096] = { 0 };
+    if (size > 8) {
+        memcpy(message_buffer, message, size);
+        message_buffer[size] = 0;
+        message_buffer[size + 1] = 0;
+        cJSON *root = cJSON_Parse(message_buffer + 8);
+        if (root != NULL) {
+            if (_is_target_message(message, "subv")) {
+                // 字幕消息
+                on_subtitle_message_received(handle, root);
+            } else {
+                ESP_LOGE(TAG, "unknown json message: %s", message_buffer + 8);
+            }
+            cJSON_Delete(root);
+        } else {
+            ESP_LOGE(TAG, "unknown message.");
+        }
+    } else {
+        ESP_LOGE(TAG, "unknown message.");
+    }
 }
 
 void initialize_sntp(void)
@@ -311,7 +383,6 @@ void app_main(void)
 {
     /* Initialize the default event loop */
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-    esp_log_level_set("*", ESP_LOG_WARN);
     esp_log_level_set("*", ESP_LOG_INFO);
 
     /* Initialize NVS flash for WiFi configuration */

@@ -96,7 +96,6 @@ static audio_element_handle_t create_record_algo_stream(void)
 recorder_pipeline_handle_t recorder_pipeline_open()
 {
     recorder_pipeline_handle_t pipeline = heap_caps_calloc(1, sizeof(recorder_pipeline_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_DEFAULT);
-    esp_log_level_set("*", ESP_LOG_WARN);
     esp_log_level_set(TAG, ESP_LOG_INFO);
 
     // create and register streams
@@ -203,7 +202,6 @@ static audio_element_handle_t create_player_i2s_stream(void)
 player_pipeline_handle_t player_pipeline_open(void)
 {
     player_pipeline_handle_t player_pipeline = heap_caps_calloc(1, sizeof(player_pipeline_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_DEFAULT);
-    esp_log_level_set("*", ESP_LOG_WARN);
     esp_log_level_set(TAG, ESP_LOG_INFO);
     assert(player_pipeline != 0);
 
