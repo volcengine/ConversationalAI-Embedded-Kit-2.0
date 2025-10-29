@@ -41,8 +41,8 @@ typedef enum {
     VOLC_AUDIO_CODEC_TYPE_UNKNOWN = 0,
     VOLC_AUDIO_CODEC_TYPE_OPUS = 1,
     VOLC_AUDIO_CODEC_TYPE_G722 = 2,
-    VOLC_AUDIO_CODEC_TYPE_AACLC = 3,
-    VOLC_AUDIO_CODEC_TYPE_G711A = 4,
+    VOLC_AUDIO_CODEC_TYPE_G711A = 3,
+    VOLC_AUDIO_CODEC_TYPE_PCM   = 4,
     VOLC_AUDIO_CODEC_TYPE_G711U = 5,
 } volc_audio_codec_type_e;
 
@@ -55,21 +55,12 @@ typedef struct {
 typedef enum {
     VOLC_VIDEO_CODEC_TYPE_UNKNOWN = 0,
     VOLC_VIDEO_CODEC_TYPE_H264    = 1,
-    VOLC_VIDEO_CODEC_TYPE_BYTEVC1 = 2,
 } volc_video_codec_type_e;
 
 typedef enum {
     VOLC_VIDEO_DATA_TYPE_UNKNOWN = 0,
     VOLC_VIDEO_DATA_TYPE_H264    = 1,
-    VOLC_VIDEO_DATA_TYPE_BYTEVC1 = 2,
-    VOLC_VIDEO_DATA_TYPE_I420    = 3,
 } volc_video_data_type_e;
-
-typedef enum {
-    VOLC_VIDEO_FRAME_TYPE_AUTO  = 0,
-    VOLC_VIDEO_FRAME_TYPE_KEY   = 1,
-    VOLC_VIDEO_FRAME_TYPE_DELTA = 2,
-} volc_video_frame_type_e;
 
 typedef struct {
     volc_video_data_type_e  data_type;
@@ -125,7 +116,7 @@ typedef enum {
 typedef struct {
     volc_mode_e mode;
     char* bot_id;
-    bool wait_for_session_update;
+    char* params;
 } volc_opt_t;
 
 typedef void* volc_engine_t;

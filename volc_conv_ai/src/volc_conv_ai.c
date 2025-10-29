@@ -247,6 +247,9 @@ int volc_create(volc_engine_t* handle, const char* config_json, volc_event_handl
             LOGE("Failed to register device error code: %d", ret);
             goto err_out_label;
         }
+    } else {
+        LOGE("IoT configuration is NULL");
+        goto err_out_label;
     }
 
     cJSON* rtc_cfg = cJSON_GetObjectItem(config, "rtc");
@@ -261,7 +264,8 @@ int volc_create(volc_engine_t* handle, const char* config_json, volc_event_handl
     }
 
 #if defined(ENABLE_WS_MODE)
-    engine->ws = volc_ws_create(engine, NULL, __realtime_user_event_router, __realtime_data_router);
+    cJSON* ws_cfg = cJSON_GetObjectItem(config, "ws");
+    engine->ws = volc_ws_create(engine, ws_cfg, __realtime_user_event_router, __realtime_data_router);
 #else
     LOGW("WS mode is not enabled");
 #endif
@@ -329,7 +333,7 @@ int volc_start(volc_engine_t handle, volc_opt_t* opt) {
     engine->mode = opt->mode;
     if (opt->mode == VOLC_MODE_WS) {
 #if defined(ENABLE_WS_MODE)
-        ret = volc_ws_start(engine->ws, opt->bot_id, &engine->info, opt->wait_for_session_update);
+        ret = volc_ws_start(engine->ws, opt->bot_id, &engine->info, opt->params);
 #else
         LOGE("WS mode is not enabled");
         ret = -1;

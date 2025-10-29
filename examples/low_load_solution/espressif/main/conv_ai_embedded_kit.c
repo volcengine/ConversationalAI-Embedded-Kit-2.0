@@ -54,10 +54,13 @@ static volatile bool is_interrupt = false;
     \"product_key\": \"%s\",\
     \"product_secret\": \"%s\",\
     \"device_name\": \"%s\"\
+  },\
+  \"ws\": {\
+    \"audio\": {\
+      \"codec\": %d\
+    }\
   }\
 }"
-
-#define CONV_AI_AUDIO_FORMAT "{\"event_id\":\"%s\",\"type\":\"session.update\",\"session\":{\"object\":\"realtime.session\",\"model\":\"\",\"input_audio_format\":\"g711_alaw\"}}"
 
 typedef struct
 {
@@ -201,8 +204,17 @@ static uint64_t __get_time_ms(void)
     return now_time.tv_sec * 1000 + now_time.tv_nsec / 1000000;
 }
 
+static int __volc_audio_codec(void) {
+#if (CONFIG_VOLC_AUDIO_G711A)
+    return VOLC_AUDIO_CODEC_TYPE_G711A;
+#else
+    return VOLC_AUDIO_CODEC_TYPE_PCM;
+#endif
+}
+
 static void conv_ai_task(void *pvParameters)
 {
+    int audio_codec = __volc_audio_codec();
     int error = 0;
     // step 1: start audio capture & play
     recorder_pipeline_handle_t pipeline = recorder_pipeline_open();
@@ -215,7 +227,8 @@ static void conv_ai_task(void *pvParameters)
              CONFIG_VOLC_INSTANCE_ID,
              CONFIG_VOLC_PRODUCT_KEY,
              CONFIG_VOLC_PRODUCT_SECRET,
-             CONFIG_VOLC_DEVICE_NAME);
+             CONFIG_VOLC_DEVICE_NAME,
+             audio_codec);
     ESP_LOGI(TAG, "conv ai config: %s", config_buf);
     volc_event_handler_t volc_event_handler = {
         .on_volc_event = _on_volc_event,
@@ -236,12 +249,9 @@ static void conv_ai_task(void *pvParameters)
     // step 3: start ai agent
     volc_opt_t opt = {
         .mode = VOLC_MODE_WS,
-        .bot_id = CONFIG_VOLC_BOT_ID};
-#if (CONFIG_VOLC_AUDIO_G711A)
-    opt.wait_for_session_update = true;
-#else
-    opt.wait_for_session_update = false;
-#endif
+        .bot_id = CONFIG_VOLC_BOT_ID,
+        .params = NULL,
+    };
     error = volc_start(engine_ctx.engine, &opt);
     if (error != 0)
     {
@@ -249,15 +259,6 @@ static void conv_ai_task(void *pvParameters)
         volc_destroy(engine_ctx.engine);
         return;
     }
-#if (CONFIG_VOLC_AUDIO_G711A)
-    while(!is_ready) {
-        usleep(1000 * 10);
-    }
-    char event_id[32] = { 0 };
-    snprintf(event_id, sizeof(event_id), "event_id_%llu", __get_time_ms());
-    snprintf(config_audio, sizeof(config_audio), CONV_AI_AUDIO_FORMAT, event_id);
-    volc_update(engine_ctx.engine, (const void*)config_audio, strlen(config_audio));
-#endif
 
     int read_size = recorder_pipeline_get_default_read_size(pipeline);
     uint8_t *audio_buffer = heap_caps_malloc(read_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);

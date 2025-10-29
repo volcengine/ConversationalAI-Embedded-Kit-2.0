@@ -355,6 +355,31 @@ static void _on_fini_notify(byte_rtc_engine_t engine)
     rtc->b_fini = true;
 }
 
+/*
+    VOLC_AUDIO_CODEC_TYPE_UNKNOWN = 0,
+    VOLC_AUDIO_CODEC_TYPE_OPUS = 1,
+    VOLC_AUDIO_CODEC_TYPE_G722 = 2,
+    VOLC_AUDIO_CODEC_TYPE_G711A = 3,
+    VOLC_AUDIO_CODEC_TYPE_PCM   = 4,
+    VOLC_AUDIO_CODEC_TYPE_G711U = 5,
+*/
+static int __volc_to_rtc_audio_codec(int volc_codec)
+{
+    switch (volc_codec) {
+        case VOLC_AUDIO_CODEC_TYPE_OPUS:
+            return AUDIO_CODEC_TYPE_OPUS;
+        case VOLC_AUDIO_CODEC_TYPE_G722:
+            return AUDIO_CODEC_TYPE_G722;
+        case VOLC_AUDIO_CODEC_TYPE_G711A:
+            return AUDIO_CODEC_TYPE_G711A;
+        case VOLC_AUDIO_CODEC_TYPE_G711U:
+            return AUDIO_CODEC_TYPE_G711U;
+        default:
+            LOGW("volc audio codec %d not supported, use opus instead", volc_codec);
+            return AUDIO_CODEC_TYPE_OPUS;
+    }
+}
+
 static int __rtc_init(rtc_impl_t* engine, cJSON* p_config)
 {
     int ret = 0;
@@ -430,7 +455,7 @@ static int __rtc_init(rtc_impl_t* engine, cJSON* p_config)
         cJSON_Delete(p_params);
     }
     byte_rtc_init(engine->rtc);
-    byte_rtc_set_audio_codec(engine->rtc, engine->audio_codec);
+    byte_rtc_set_audio_codec(engine->rtc, __volc_to_rtc_audio_codec(engine->audio_codec));
     byte_rtc_set_video_codec(engine->rtc, video_codec - 1); // -1 for default codec
     return 0;
 }
@@ -494,7 +519,7 @@ int volc_rtc_start(volc_rtc_t rtc, const char* bot_id, volc_iot_info_t* iot_info
         return -1;
     }
     char* task_id = "test";
-    if (volc_get_rtc_config(iot_info, rtc_impl->audio_codec, bot_id, task_id, &rtc_impl->info)) {
+    if (volc_get_rtc_config(iot_info, __volc_to_rtc_audio_codec(rtc_impl->audio_codec), bot_id, task_id, &rtc_impl->info)) {
         LOGE("get rtc config failed");
         return -1;
     }

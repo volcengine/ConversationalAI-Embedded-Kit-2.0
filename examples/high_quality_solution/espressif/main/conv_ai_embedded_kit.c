@@ -60,7 +60,7 @@ static volatile bool is_interrupt = false;
     \"audio\": {\
       \"publish\": true,\
       \"subscribe\": true,\
-      \"codec\": 4\
+      \"codec\": 3\
     },\
     \"video\": {\
       \"publish\": false,\

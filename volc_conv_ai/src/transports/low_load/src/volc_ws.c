@@ -24,31 +24,46 @@ typedef struct {
     int in_progress;
 } ws_assembler_t;
 
+typedef struct ws_params {
+    volc_audio_codec_type_e audio_codec_type;
+} ws_params_t;
+
 typedef struct {
     bool b_pipeline_started;
     bool b_connected;
-    bool b_wait_for_session_update;
     bool b_interrupted;
     char* p_data_buf;
     char* p_bot_id;
     char* p_last_response_id;
     char headers[1024];
     char uri[256];
+    char event_id[64];
+    int event_id_index;
     size_t data_buf_size;
     void* context;
     volatile volc_conv_status_e conv_status;
     volc_msg_cb message_callback;
     volc_data_cb data_callback;
     char hardware_id[32];
+    ws_params_t params;
     ws_assembler_t assembler;
     volc_ws_client_t* client;
 } ws_impl_t;
 
 static int __ws_init(ws_impl_t* ws, cJSON* p_config)
 {
-    (void)ws;
-    (void)p_config;
+    int ret = volc_json_read_int(p_config, "audio.codec", (int*)&ws->params.audio_codec_type);
+    if (ret != 0) {
+        ws->params.audio_codec_type = VOLC_AUDIO_CODEC_TYPE_PCM;
+    }
     return 0;
+}
+
+static bool __ws_wait_for_session_update(ws_impl_t* ws) {
+    if (ws->params.audio_codec_type != VOLC_AUDIO_CODEC_TYPE_PCM) {
+        return true;
+    }
+    return false;
 }
 
 static int __build_ws_message(const char* msg, uint8_t** out_buf, size_t* out_len) {
@@ -191,6 +206,53 @@ static void __ws_assembler_free(ws_assembler_t* a) {
     a->in_progress = 0;
 }
 
+static int __ws_generate_event_id(ws_impl_t* ws) {
+    if (!ws) {
+        LOGE("ws instance is NULL");
+        return -1;
+    }
+    memset(ws->event_id, 0, sizeof(ws->event_id));
+    snprintf(ws->event_id, sizeof(ws->event_id), "event_id_%llu", ws->event_id_index++);
+    return 0;
+}
+
+static char* __ws_audio_codec_to_string(ws_impl_t* ws) {
+    switch (ws->params.audio_codec_type) {
+        case VOLC_AUDIO_CODEC_TYPE_OPUS:
+            return "opus16";
+        case VOLC_AUDIO_CODEC_TYPE_G722:
+            return "g722";
+        case VOLC_AUDIO_CODEC_TYPE_G711A:
+            return "g711_alaw";
+        case VOLC_AUDIO_CODEC_TYPE_G711U:
+            return "g711u_ulaw";
+        default:
+            return "pcm16";
+    }
+}
+
+static char* __ws_generate_session_update(ws_impl_t* ws) {
+    char* json = NULL;
+    cJSON* root = NULL;
+    cJSON* session = NULL;
+    if (!ws) {
+        LOGE("ws instance is NULL");
+        return NULL;
+    }
+    __ws_generate_event_id(ws);
+    root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "event_id", ws->event_id);
+    cJSON_AddStringToObject(root, "type", "session.update");
+    session = cJSON_CreateObject();
+    cJSON_AddItemToObject(root, "session", session);
+    cJSON_AddStringToObject(session, "object", "realtime.session");
+    cJSON_AddStringToObject(session, "model", "");
+    cJSON_AddStringToObject(session, "input_audio_format", __ws_audio_codec_to_string(ws));
+    json = cJSON_PrintUnformatted(root);
+    cJSON_Delete(root);
+    return json;
+}
+
 static void __ws_append_data(ws_impl_t* ws, volc_ws_event_data_t* data) {
     int new_capacity = 0;
     uint8_t* new_buffer = NULL;
@@ -269,9 +331,18 @@ static void  __ws_event_handler(void* context, int32_t event_id, void* event_dat
     }
 }
 
+static int __ws_send_message(ws_impl_t* ws, const void* data_ptr, size_t data_len) {
+    if (!ws || !data_ptr || !data_len) {
+        LOGE("ws or data or info is NULL");
+        return -1;
+    }
+    return volc_ws_client_send_text(ws->client, (const char*)data_ptr, data_len, 1000);
+}
+
 static int __ws_start(ws_impl_t* ws, volc_iot_info_t* iot_info)
 {
     uint64_t current_time = hal_get_time_ms();
+    bool b_wait_for_session_update = __ws_wait_for_session_update(ws);
     int random_num = (int)current_time;//volc_get_random_num();
     char time_str[32] = { 0 };
     char num_str[32] = { 0 };
@@ -288,7 +359,7 @@ static int __ws_start(ws_impl_t* ws, volc_iot_info_t* iot_info)
     snprintf(num_str, sizeof(num_str), "%d", random_num);
     char* signature = volc_generate_signature_ws(iot_info->device_secret, iot_info->product_key, iot_info->device_name, iot_info->instance_id, random_num, current_time, 1);
     volc_ws_config_t ws_cfg = { 0 };
-    snprintf(ws->uri, sizeof(ws->uri), "%s%s?bot=%s&wait_for_session_update=%s", WS_AIGC_URI, WS_AIGC_PATH, ws->p_bot_id, ws->b_wait_for_session_update ? "true" : "false");
+    snprintf(ws->uri, sizeof(ws->uri), "%s%s?bot=%s&wait_for_session_update=%s", WS_AIGC_URI, WS_AIGC_PATH, ws->p_bot_id, b_wait_for_session_update ? "true" : "false");
 	ws_cfg.uri = ws->uri;
     ws_cfg.user_agent = user_agent;
 	snprintf(ws->headers, sizeof(ws->headers),
@@ -310,6 +381,17 @@ static int __ws_start(ws_impl_t* ws, volc_iot_info_t* iot_info)
         LOGE("Failed to start websocket client");
 		return -1;
 	}
+    if (b_wait_for_session_update) {
+        // wait for session.update
+        while (!ws->b_connected) {
+            hal_thread_sleep(10);
+        }
+        char* session_update = __ws_generate_session_update(ws);
+        if (session_update) {
+            __ws_send_message(ws, session_update, strlen(session_update));
+            hal_free(session_update);
+        }
+    }
     ws->b_pipeline_started = true;
     return 0;
 }
@@ -438,12 +520,19 @@ static int __ws_send_audio(ws_impl_t* ws, const void* data_ptr, size_t data_len,
     return ret;
 }
 
-static int __ws_send_message(ws_impl_t* ws, const void* data_ptr, size_t data_len) {
-    if (!ws || !data_ptr || !data_len) {
-        LOGE("ws or data or info is NULL");
-        return -1;
+static void __ws_parse_params(const char* params, ws_params_t* out_params) {
+    cJSON* p_json = NULL;
+    if (!params || !out_params) {
+        LOGW("params or out_params is NULL");
+        return;
     }
-    return volc_ws_client_send_text(ws->client, (const char*)data_ptr, data_len, 1000);
+    p_json = cJSON_Parse(params);
+    if (!p_json) {
+        LOGW("Failed to parse json params: %s", params);
+        return;
+    }
+    volc_json_read_int(p_json, "audio.codec", (int*)&out_params->audio_codec_type);
+    cJSON_Delete(p_json);
 }
 
 volc_ws_t volc_ws_create(void* context, cJSON* p_config, volc_msg_cb message_callback, volc_data_cb data_callback) {
@@ -456,6 +545,7 @@ volc_ws_t volc_ws_create(void* context, cJSON* p_config, volc_msg_cb message_cal
     ws->data_callback = data_callback;
     ws->context = context;
     ws->conv_status = VOLC_CONV_STATUS_ANSWER_FINISH;
+    ws->params.audio_codec_type = VOLC_AUDIO_CODEC_TYPE_PCM;
 
     hal_get_uuid(ws->hardware_id, sizeof(ws->hardware_id));
 
@@ -483,14 +573,14 @@ void volc_ws_destroy(volc_ws_t ws) {
     HAL_SAFE_FREE(ws_impl);
 }
 
-int volc_ws_start(volc_ws_t ws, const char* bot_id, volc_iot_info_t* iot_info, bool wait_for_session_update) {
+int volc_ws_start(volc_ws_t ws, const char* bot_id, volc_iot_info_t* iot_info, const char* params) {
     ws_impl_t* ws_impl = (ws_impl_t*) ws;
     if (!ws_impl) {
         LOGE("ws instance is NULL");
         return -1;
     }
     ws_impl->p_bot_id = strdup(bot_id);
-    ws_impl->b_wait_for_session_update = wait_for_session_update;
+    __ws_parse_params(params, &ws_impl->params);
     return __ws_start(ws_impl, iot_info);
 }
 

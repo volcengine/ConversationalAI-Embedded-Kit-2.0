@@ -21,7 +21,7 @@ volc_ws_t volc_ws_create(void* context, cJSON* p_config, volc_msg_cb message_cal
 
 void volc_ws_destroy(volc_ws_t ws);
 
-int volc_ws_start(volc_ws_t ws, const char* bot_id, volc_iot_info_t* iot_info, bool wait_for_session_update);
+int volc_ws_start(volc_ws_t ws, const char* bot_id, volc_iot_info_t* iot_info, const char* params);
 
 int volc_ws_send(volc_ws_t ws, const void* data, int size, volc_data_info_t* data_info);
 
