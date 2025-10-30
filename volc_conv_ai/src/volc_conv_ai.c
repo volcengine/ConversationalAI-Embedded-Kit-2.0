@@ -526,6 +526,38 @@ int volc_send_message(volc_engine_t handle, const void* data_ptr, size_t data_le
     return ret;
 }
 
+int volc_send_text_to_agent(volc_engine_t handle, const char* text, volc_agent_type_e type) {
+    int ret = 0;
+    volc_engine_impl_t* engine = (volc_engine_impl_t*)handle;
+    if (handle == NULL) {
+        LOGE("engine handle is NULL");
+        return -1;
+    }
+    LOGD("interrupt: %d", engine->mode);
+     switch (engine->mode) {
+        case VOLC_MODE_RTC:
+#if defined(ENABLE_RTC_MODE)
+            ret = volc_rtc_send_text_to_agent(engine->rtc,text,type);
+#else
+            LOGE("RTC mode is not enabled");
+            ret = -1;
+#endif
+            break;
+        case VOLC_MODE_WS:
+#if defined(ENABLE_WS_MODE)
+            ret = -2;
+            LOGE("WS mode is not support send_text");
+#else
+            LOGE("WS mode is not enabled");
+            ret = -1;
+#endif
+            break;
+        default:
+            break;
+    }
+    return ret;
+}
+
 int volc_interrupt(volc_engine_t handle) {
     int ret = 0;
     volc_engine_impl_t* engine = (volc_engine_impl_t*)handle;

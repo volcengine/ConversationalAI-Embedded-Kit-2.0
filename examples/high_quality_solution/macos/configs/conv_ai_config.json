@@ -1,0 +1,33 @@
+{
+  "mode": 0,
+  "bot_id": "****************",
+  "ver": 1,
+  "iot": {
+    "instance_id": "****************",
+    "product_key": "****************",
+    "product_secret": "****************",
+    "device_name": "****************",
+    "host": "****************"
+  },
+  "ws": {
+    "aigw_path": "/v1/realtime"
+  },
+    "rtc": {
+      "log_level": 3,
+      "audio" : {
+        "publish": true,
+        "subscribe": true,
+        "codec": 4
+      },
+      "video" : {
+        "publish": false,
+        "subscribe": false,
+        "codec": 1
+      },
+      "params": [
+        "{\"debug\":{\"log_to_console\":1}}",
+        "{\"env\":0}",
+        "{\"audio\":{\"codec\":{\"internal\":{\"enable\":1}}}}"
+      ]
+  }
+}

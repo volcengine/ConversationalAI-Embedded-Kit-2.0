@@ -119,6 +119,12 @@ typedef struct {
     char* params;
 } volc_opt_t;
 
+typedef enum {
+    VOLC_AGENT_TYPE_TTS = 0,
+    VOLC_AGENT_TYPE_LLM = 1,
+    VOLC_AGENT_TYPE_UNKNOW,
+} volc_agent_type_e;
+
 typedef void* volc_engine_t;
 
 typedef struct {
@@ -148,6 +154,8 @@ __volc_rt_api__ int volc_send_audio_data(volc_engine_t handle, const void* data_
 __volc_rt_api__ int volc_send_video_data(volc_engine_t handle, const void* data_ptr, size_t data_len, volc_video_frame_info_t* info_ptr);
 
 __volc_rt_api__ int volc_send_message(volc_engine_t handle, const void* data_ptr, size_t data_len, volc_message_info_t* info_ptr);
+
+__volc_rt_api__ int volc_send_text_to_agent(volc_engine_t handle, const char* text, volc_agent_type_e type);
 
 __volc_rt_api__ int volc_interrupt(volc_engine_t handle);
 

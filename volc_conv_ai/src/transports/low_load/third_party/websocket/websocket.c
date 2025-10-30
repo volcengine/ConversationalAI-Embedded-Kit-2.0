@@ -1202,7 +1202,6 @@ volc_ws_client_t* volc_ws_client_init(const volc_ws_config_t* input)
 
     // set event callback
     client->ws_event_handler = input->ws_event_handler;
-    ;
 
     // set autoreconnect
     client->auto_reconnect = true;
@@ -1333,7 +1332,11 @@ static void free_client(volc_ws_client_t* client)
     HAL_SAFE_FREE(client);
 }
 
+#if defined(PLATFORM_MACOS)
+void* volc_ws_client_task(void* thread_param)
+#else
 void volc_ws_client_task(void* thread_param)
+#endif
 {
     volc_ws_client_t* client = (volc_ws_client_t*) thread_param;
 
@@ -1450,7 +1453,11 @@ void volc_ws_client_task(void* thread_param)
     }
     client->exit = true;
     hal_thread_exit(NULL);
+#if defined(PLATFORM_MACOS)
+    return NULL;
+#else
     return;
+#endif
 }
 
 int volc_ws_client_start(volc_ws_client_t* client)

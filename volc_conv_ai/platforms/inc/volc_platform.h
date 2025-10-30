@@ -37,7 +37,11 @@ typedef struct {
     int stack_in_ext;
 } hal_thread_param_t;
 
+#if defined(PLATFORM_MACOS)
+int hal_thread_create(hal_tid_t* thread, const hal_thread_param_t* param, void* (*start_routine)(void *), void* args);
+#else
 int hal_thread_create(hal_tid_t* thread, const hal_thread_param_t* param, void (*start_routine)(void *), void* args);
+#endif
 int hal_thread_detach(hal_tid_t thread);
 void hal_thread_exit(hal_tid_t thread);
 void hal_thread_sleep(int time_ms);

@@ -7,8 +7,8 @@
 ### Changes
 - drop text when interrupted
 - update dirs
+- refact project structure
 
 ### Bugs fixed
 - fix esp button error
 - fix destroy issue
-

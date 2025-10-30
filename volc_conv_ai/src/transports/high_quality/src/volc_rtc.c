@@ -596,6 +596,39 @@ int volc_rtc_interrupt(volc_rtc_t rtc) {
     return ret;
 }
 
+int volc_rtc_send_text_to_agent(volc_rtc_t rtc, const char* text, volc_agent_type_e type){
+    int ret = 0;
+    cJSON * pJsn =  cJSON_CreateObject();
+    uint8_t* msg_ctrl = NULL;
+    size_t msg_len = 0;
+    rtc_impl_t* rtc_impl = (rtc_impl_t*) rtc;
+    volc_data_info_t data_info = {0};
+    if (!rtc_impl) {
+        LOGE("rtc instance is NULL");
+        return -1;
+    }
+    if(type == VOLC_AGENT_TYPE_TTS){
+        cJSON_AddStringToObject(pJsn,"Command","ExternalTextToSpeech");
+    }  else if(type == VOLC_AGENT_TYPE_LLM){
+        cJSON_AddStringToObject(pJsn,"Command","ExternalTextToLLM");
+    }
+    cJSON_AddStringToObject(pJsn,"Message",text);
+    cJSON_AddNumberToObject(pJsn,"InterruptMode",2);
+    char* text_str =  cJSON_Print(pJsn);
+    if (_build_binary_message(MAGIC_CONTROL, text_str, &msg_ctrl, &msg_len) != 0) {
+        LOGE("build control message failed");
+        return -1;
+    }
+    data_info.type = VOLC_DATA_TYPE_MESSAGE;
+    data_info.info.message.is_binary = true;
+    if ((ret = volc_rtc_send(rtc, msg_ctrl, msg_len, &data_info)) != 0) {
+        LOGE("send interrupt message failed");
+    }
+    HAL_SAFE_FREE(msg_ctrl);
+    cJSON_Delete(pJsn);
+    return ret;
+}
+
 int volc_rtc_send_jpg(volc_rtc_t rtc, void* data, int size) {
     return 0;
 }

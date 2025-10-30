@@ -33,6 +33,8 @@ int volc_rtc_interrupt(volc_rtc_t rtc);
 
 int volc_rtc_send_jpg(volc_rtc_t rtc, void* data, int size);
 
+int volc_rtc_send_text_to_agent(volc_rtc_t rtc, const char* text, volc_agent_type_e type);
+
 #endif
 
 #ifdef __cplusplus

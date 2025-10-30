@@ -31,9 +31,9 @@ extern "C"
 #define LOG_COLOR_BLUE "\033[34m"
 #define LOG_COLOR_PRUPLE "\033[35m"
 
-// #ifndef __FILENAME__
-// #define __FILENAME__ (__builtin_strrchr(__FILE__, '/') ? __builtin_strrchr(__FILE__, '/') + 1 : __FILE__)
-// #endif
+#ifndef __FILENAME__
+#define __FILENAME__ (__builtin_strrchr(__FILE__, '/') ? __builtin_strrchr(__FILE__, '/') + 1 : __FILE__)
+#endif
 // 通用日志宏
 #define LOG(level, tag, color, format, ...)                                                                      \
     do                                                                                                           \

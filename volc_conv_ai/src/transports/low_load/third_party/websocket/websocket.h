@@ -135,7 +135,11 @@ typedef struct {
 
 volc_ws_client_t* volc_ws_client_init(const volc_ws_config_t* input);
 int volc_ws_client_destroy(volc_ws_client_t* client);
+#if defined(PLATFORM_MACOS)
+void* volc_ws_client_task(void* thread_param);
+#else
 void volc_ws_client_task(void* thread_param);
+#endif
 int volc_ws_client_start(volc_ws_client_t* client);
 int volc_ws_client_stop(volc_ws_client_t* client);
 
