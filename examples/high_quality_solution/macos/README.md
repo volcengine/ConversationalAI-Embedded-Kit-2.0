@@ -1,5 +1,5 @@
 <h1 align="center"><img src="https://iam.volccdn.com/obj/volcengine-public/pic/volcengine-icon.png"></h1>
-<h1 align="center">ConversationalAI Embedded Kit</h1>
+<h1 align="center">ConversationalAI Embedded Kit 2.0 </h1>
 
 ## 快速开始
 
@@ -34,7 +34,6 @@ volc_stop(...);
 volc_destroy(...);
 ```
 
-```
 ## 配置文件说明
 ```
 {

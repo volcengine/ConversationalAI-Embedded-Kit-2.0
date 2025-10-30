@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.6.3)
 project(VolcConvAIDemo LANGUAGES C)
 
-include(${CMAKE_CURRENT_SOURCE_DIR}/../../../cmake/common.cmake)
-include(${CMAKE_CURRENT_SOURCE_DIR}/../../../cmake/macos.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/../../../volc_conv_ai/cmake/common.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/../../../volc_conv_ai/cmake/macos.cmake)
 
 set(ENABLE_RTC_MODE ON)
 add_definitions(-DENABLE_RTC_MODE)

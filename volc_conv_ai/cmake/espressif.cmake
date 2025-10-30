@@ -6,11 +6,11 @@
 
 # Source files
 set(VOLC_SRCS ${VOLC_CONV_AI_SRCS}
-            "${CMAKE_CURRENT_LIST_DIR}/../volc_conv_ai/platforms/src/espressif/volc_platform.c"
+            "${CMAKE_CURRENT_LIST_DIR}/../platforms/src/espressif/volc_platform.c"
 )
 
 set(VOLC_INCS ${VOLC_CONV_AI_INCS}
-            "${CMAKE_CURRENT_LIST_DIR}/../volc_conv_ai/platforms/inc"
+            "${CMAKE_CURRENT_LIST_DIR}/../platforms/inc"
 )
 
 if(CONFIG_VOLC_RTC_MODE)
@@ -44,7 +44,7 @@ if(CONFIG_VOLC_RTC_MODE)
     
     # Add prebuilt library for RTC mode
     add_prebuilt_library(volc_engine_rtc_lite 
-        "${CMAKE_CURRENT_LIST_DIR}/../volc_conv_ai/src/transports/high_quality/third_party/volc_rtc_engine_lite/libs/${CONFIG_IDF_TARGET}/libVolcEngineRTCLite.a"
+        "${CMAKE_CURRENT_LIST_DIR}/../src/transports/high_quality/third_party/volc_rtc_engine_lite/libs/${CONFIG_IDF_TARGET}/libVolcEngineRTCLite.a"
         REQUIRES mbedtls espressif__zlib json lwip)
     target_link_libraries(${COMPONENT_LIB} INTERFACE volc_engine_rtc_lite)
 endif()

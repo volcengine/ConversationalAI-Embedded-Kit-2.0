@@ -6,8 +6,8 @@ add_definitions(-DENABLE_WS_MODE)
 
 set(ENABLE_MBEDTLS ON)
 
-include(${CMAKE_CURRENT_SOURCE_DIR}/../../../cmake/common.cmake)
-include(${CMAKE_CURRENT_SOURCE_DIR}/../../../cmake/macos.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/../../../volc_conv_ai/cmake/common.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/../../../volc_conv_ai/cmake/macos.cmake)
 
 find_package(PkgConfig REQUIRED)
 

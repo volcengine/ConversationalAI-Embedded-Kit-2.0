@@ -7,13 +7,13 @@ option(ENABLE_MBEDTLS "Enable Mbedtls" ON)
 
 if(NOT DEFINED VOLC_CONV_AI_PLATFORM_SRCS)
     set(VOLC_CONV_AI_PLATFORM_SRCS
-        "${CMAKE_CURRENT_LIST_DIR}/../volc_conv_ai/platforms/src/macos/volc_platform.c"
+        "${CMAKE_CURRENT_LIST_DIR}/../platforms/src/macos/volc_platform.c"
         CACHE INTERNAL "ConversationalAI-Embedded-Kit-2.0 platform src file")
 endif()
 
-set(MBEDTLS_PREBUILT_DIR ${CMAKE_CURRENT_LIST_DIR}/../volc_conv_ai/third_party/prebuilt/mbedtls)
+set(MBEDTLS_PREBUILT_DIR ${CMAKE_CURRENT_LIST_DIR}/../third_party/prebuilt/mbedtls)
 set(MBEDTLS_LIBRARY_FILE "${MBEDTLS_PREBUILT_DIR}/lib/libmbedtls.a")
-set(MBEDTLS_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/../volc_conv_ai/third_party/mbedtls)
+set(MBEDTLS_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/../third_party/mbedtls)
 
 if(NOT EXISTS "${MBEDTLS_LIBRARY_FILE}" AND NOT EXISTS "${MBEDTLS_SOURCE_DIR}/CMakeLists.txt")
     message(STATUS "start download and compile mbedtls...")
@@ -59,7 +59,7 @@ add_library(zlib_static STATIC IMPORTED GLOBAL)
 add_library(mbedcrypto_static STATIC IMPORTED GLOBAL)
 
 set_target_properties(zlib_static PROPERTIES
-    IMPORTED_LOCATION ${CMAKE_CURRENT_LIST_DIR}/../volc_conv_ai/third_party/prebuilt/zlib/lib/libz.a
+    IMPORTED_LOCATION ${CMAKE_CURRENT_LIST_DIR}/../third_party/prebuilt/zlib/lib/libz.a
 )
 set_target_properties(mbedtls_static PROPERTIES
     IMPORTED_LOCATION ${MBEDTLS_PREBUILT_DIR}/lib/libmbedtls.a
@@ -76,7 +76,7 @@ if(ENABLE_RTC_MODE)
         ${VOLC_CONV_AI_HIGH_QUALITY_SRCS}
     )
     message(STATUS "use high quality RTC mode")
-    set(RTC_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/../volc_conv_ai/src/transports/high_quality/third_party/volc_rtc_engine_lite/libs/macos)
+    set(RTC_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/../src/transports/high_quality/third_party/volc_rtc_engine_lite/libs/macos)
     message(STATUS "RTC_LIB_DIR: ${RTC_LIB_DIR}")
     find_library(RTC_LIBRARIES NAMES VolcEngineRTCLite_a REQUIRED NO_CMAKE_FIND_ROOT_PATH PATHS ${RTC_LIB_DIR})
     find_library(RTC_HAL_LIBRARIES NAMES VolcEngineRTCHal REQUIRED NO_CMAKE_FIND_ROOT_PATH PATHS ${RTC_LIB_DIR})
