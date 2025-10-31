@@ -322,16 +322,24 @@ static void __on_subtitle_message_received(cJSON* root) {
     }
 }
 
-static void __send_conversation_item_create(realtime_ws_demo_t* demo, const char* call_id) {
+static void __send_conversation_item_create(realtime_ws_demo_t* demo, const char* call_id, const char* mode, const char* content_str) {
     volc_message_info_t msg_info = { 0 };
     cJSON* root = cJSON_CreateObject();
     cJSON* item = cJSON_CreateObject();
+    cJSON* content = cJSON_CreateArray();
+    cJSON* content_item = cJSON_CreateObject();
+
     cJSON_AddItemToObject(root, "type", cJSON_CreateString("conversation.item.create"));
     cJSON_AddItemToObject(root, "item", item);
-    cJSON_AddItemToObject(item, "call_id", cJSON_CreateString(call_id));
-    cJSON_AddItemToObject(item, "type", cJSON_CreateString("function_call_output"));
-    cJSON_AddItemToObject(item, "object", cJSON_CreateString("realtime.item"));
-    cJSON_AddItemToObject(item, "output", cJSON_CreateString("上海天气25摄氏度"));
+    cJSON_AddItemToObject(item, "type", cJSON_CreateString("message"));
+    cJSON_AddItemToObject(item, "role", cJSON_CreateString("user"));
+    cJSON_AddItemToObject(item, "interrupt_mode", cJSON_CreateNumber(1));
+    cJSON_AddItemToObject(root, "event_id", cJSON_CreateString(call_id));
+
+    cJSON_AddItemToObject(content_item, "type", cJSON_CreateString(mode));
+    cJSON_AddItemToObject(content_item, "text", cJSON_CreateString(content_str));
+    cJSON_AddItemToArray(content, content_item);
+    cJSON_AddItemToObject(item, "content", content);
 
     char* json_str = cJSON_Print(root);
     if (json_str == NULL) {
@@ -352,36 +360,60 @@ static void __handle_ws_conversation_item_created_call(realtime_ws_demo_t* demo,
     cJSON* call_id_obj = NULL;
     cJSON* type_obj = NULL;
     cJSON* name_obj = NULL;
+    char* name = NULL;
 
     item_obj = cJSON_GetObjectItem(root, "item");
     if (item_obj == NULL) {
         printf("item_obj is NULL\n");
         return;
     }
+
     call_id_obj = cJSON_GetObjectItem(item_obj, "call_id");
     if (call_id_obj == NULL) {
         printf("call_id_obj is NULL\n");
         return;
     }
-    type_obj = cJSON_GetObjectItem(item_obj, "type");
-    if (type_obj == NULL) {
-        printf("type_obj is NULL\n");
+    name_obj = cJSON_GetObjectItem(item_obj, "name");
+    if (name_obj == NULL) {
+        printf("name_obj is NULL\n");
         return;
     }
-    if (strcmp("function_call", cJSON_GetStringValue(type_obj)) == 0) {
-        name_obj = cJSON_GetObjectItem(item_obj, "name");
-        if (name_obj == NULL) {
-            printf("name_obj is NULL\n");
-            return;
-        }
-        // 处理function_call
-        // 处理get_current_weather fc
-        if (strcmp("天气", cJSON_GetStringValue(name_obj)) == 0) {
-            __send_conversation_item_create(demo, cJSON_GetStringValue(call_id_obj));
-        } else {
-            printf("unknown function_call name:%s\n", cJSON_GetStringValue(name_obj));
-        }
+    name = cJSON_GetStringValue(name_obj);
+    if (strcmp("get_current_weather", name) == 0) {
+        // step 1: 接收工具调用通知消息
+        printf("get_current_weather function_call\n");
+        // step 2: 播放安抚语(可选)
+       __send_conversation_item_create(demo, cJSON_GetStringValue(call_id_obj), "input_tts", "查询中，请稍等片刻。");
+    } else {
+        printf("unknown function call name: %s\n", name);
     }
+}
+
+static void* __handle_msg_message_thread(void* arg) {
+    realtime_ws_demo_t* demo = (realtime_ws_demo_t*)arg;
+    __send_conversation_item_create(demo, "event_id", "input_text", "上海天气今天25度, 晴天, 有微风。");
+    return NULL;
+}
+
+static void __handle_function_call_arguments_done(realtime_ws_demo_t* demo, cJSON* root) {
+    pthread_t msg_thread;
+    cJSON* args_obj = NULL;
+    cJSON* name_obj = NULL;
+    if (NULL == root) {
+        return;
+    }
+    printf("function_call_arguments done received\n");
+    args_obj = cJSON_GetObjectItem(root, "arguments");
+    if (args_obj) {
+        // 处理function_call_arguments
+        // step 3: 接收工具调用指令消息， 解析参数并调用工具
+        // ...
+        // step 4: 接收工具调用结果消息，发送给模型
+        printf("function_call_arguments done\n");
+        pthread_create(&msg_thread, NULL, __handle_msg_message_thread, demo);
+        pthread_detach(msg_thread);
+    }
+    printf("function_call_arguments done processing completed\n");
 }
 
 static void __handle_ws_message(realtime_ws_demo_t* demo, const void* message, size_t size) {
@@ -392,9 +424,12 @@ static void __handle_ws_message(realtime_ws_demo_t* demo, const void* message, s
         printf("parse json buffer failed\n");
         return;
     }
+    printf("ws message size:%zu data:%s\n", size, (char*)message);
     type_obj = cJSON_GetObjectItem(root, "type");
     if (type_obj != NULL && strcmp("conversation.item.created", cJSON_GetStringValue(type_obj)) == 0) {
         __handle_ws_conversation_item_created_call(demo, root);
+    } else if(type_obj != NULL && strcmp("response.function_call_arguments.done", cJSON_GetStringValue(type_obj)) == 0) {
+        __handle_function_call_arguments_done(demo, root);
     } else {
         printf("%s\n", (char*)message);
     }
@@ -419,8 +454,7 @@ static void __handle_rtc_message(realtime_ws_demo_t* demo, const void* message, 
 }
 
 static void _on_volc_message_data(volc_engine_t handle, const void* message, size_t size, volc_message_info_t* info_ptr, void* user_data)
-{
-    
+{   
     realtime_ws_demo_t* demo = (realtime_ws_demo_t*)user_data;
     static int cnt = 0;
     printf("--------------%d----------------\r\n", cnt++);
