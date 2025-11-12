@@ -100,6 +100,7 @@ static bool __ws_drop_for_interrupted(ws_impl_t* ws, const char* p_response_id) 
             ws->p_last_response_id = NULL;
         }
         ws->p_last_response_id = strdup(p_response_id);
+        LOGI("drop for interrupted, response_id: %s", p_response_id);
     }
     if (ws->p_last_response_id && p_response_id && strcmp(ws->p_last_response_id, p_response_id) == 0) {
         return true;
@@ -150,6 +151,12 @@ static void __ws_recv_data(ws_impl_t* ws, const char* data, int data_len)
         if (NULL == p_data) {
             LOGE("Failed to alloc memory");
             goto err_out_label;
+        }
+        if (ws->conv_status == VOLC_CONV_STATUS_THINKING) {
+            ws->conv_status = VOLC_CONV_STATUS_ANSWERING;
+            msg.code = VOLC_MSG_CONV_STATUS;
+            msg.data.conv_status = ws->conv_status;
+            __send_message_2_user(ws, &msg);
         }
         volc_base64_decode((unsigned char *)p_data, len, &len, (const unsigned char *)p_delta, strlen(p_delta));
         info.type = VOLC_DATA_TYPE_AUDIO;
@@ -633,7 +640,8 @@ int volc_ws_interrupt(volc_ws_t ws) {
         LOGE("ws instance is NULL");
         return -1;
     }
-    if (ws_impl->conv_status != VOLC_CONV_STATUS_LISTENING && ws_impl->conv_status != VOLC_CONV_STATUS_THINKING) {
+    if (ws_impl->conv_status != VOLC_CONV_STATUS_LISTENING && ws_impl->conv_status != VOLC_CONV_STATUS_THINKING &&
+        ws_impl->conv_status != VOLC_CONV_STATUS_ANSWERING) {
         LOGW("interrupt failed, conv status is not listening or thinking");
         return -1;
     }
@@ -641,7 +649,9 @@ int volc_ws_interrupt(volc_ws_t ws) {
         LOGE("build control message failed");
         return -1;
     }
-    ws_impl->b_interrupted = true;
+    if (ws_impl->conv_status == VOLC_CONV_STATUS_ANSWERING) {
+        ws_impl->b_interrupted = true;
+    }
     if ((__ws_send_message(ws_impl, msg, msg_len)) <= 0) {
         LOGE("send control message failed");
         ret = -1;
