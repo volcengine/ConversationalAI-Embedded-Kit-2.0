@@ -72,10 +72,11 @@
    cd $ADF_PATH/examples
    ```
    
-   2. 克隆实时对话式 AI 硬件示例工程。
+   2. 克隆实时对话式 AI 硬件示例工程，切换分支到main_Korvo_2
    
    ```bash
    git clone https://github.com/volcengine/ConversationalAI-Embedded-Kit-2.0.git
+   git checkout main_Korvo_2
    ```
 2. 禁用乐鑫工程中的火山组件。
    
