@@ -9,6 +9,7 @@
 #define CONFIG_VOLC_PRODUCT_SECRET "xxxx"
 #define CONFIG_VOLC_DEVICE_NAME "xxxx"
 
+
 #define CONV_AI_CONFIG_FORMAT "{\
   \"ver\": 1,\
   \"iot\": {\
@@ -27,7 +28,7 @@
     \"video\": {\
       \"publish\": false,\
       \"subscribe\": false,\
-      \"codec\": 1\
+      \"codec\": 3\
     },\
   \"params\":[\
       \"{\\\"debug\\\":{\\\"log_to_console\\\":1}}\",\
@@ -60,7 +61,7 @@ static void __on_volc_event(volc_engine_t handle, volc_event_t *event, void *use
 
 static void __on_volc_audio_data(volc_engine_t handle, const void *data_ptr, size_t data_len, volc_audio_frame_info_t *info_ptr, void *user_data)
 {
-    printf("__on_volc_audio_data \n");
+    printf("__on_volc_audio_data type %d \n", info_ptr->data_type);
     // play_audio_data(player_handle, data_ptr, data_len);
 }
 
@@ -112,6 +113,9 @@ static void __on_volc_message_data(volc_engine_t handle, const void *message, si
             if (message_buffer[0] == 's' && message_buffer[1] == 'u' && message_buffer[2] == 'b' && message_buffer[3] == 'v') {
                 __on_subtitle_message_received(root);
             }
+            if(message_buffer[0] == 'c' && message_buffer[1] == 'l' && message_buffer[2] == 'a' && message_buffer[3] == 'w'){
+			printf("claw: %s \n", message + 8);
+		}
             cJSON_Delete(root);
         }
       }
@@ -144,8 +148,10 @@ int main(){
    for(int i = 0;i<5;i++){
         //  capture_audio_data();
         //   volc_send_audio_data(engine, data, len, &info);
-        sleep(5);
-        volc_send_text_to_agent(engine, "火山引擎测试", VOLC_AGENT_TYPE_TTS, 1);
+        volc_send_text_to_agent(engine, "背一首古诗", VOLC_AGENT_TYPE_LLM, 1);
+        printf("背古诗 \n");
+
+        sleep(20);
     }
     volc_stop(engine);
     volc_destroy(engine);

@@ -5,7 +5,7 @@
 cmake_minimum_required(VERSION 3.5)
 
 # include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-
+add_definitions(-DVOLC_CONV_AI_SKIP_REGISTER)
 #include($ENV{ADF_PATH}/CMakeLists.txt)
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(VolcRTCDemo)

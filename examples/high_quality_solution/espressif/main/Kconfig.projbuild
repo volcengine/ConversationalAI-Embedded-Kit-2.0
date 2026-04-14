@@ -43,6 +43,14 @@ config VOLC_BOT_ID
     string "bot id"
     default ""
 
+config VOLC_APPID
+    string "app id"
+    default ""
+
+config VOLC_IP
+    string "the ip for get token"
+    default ""
+
 menu "Develop Configuration"
 
 choice VOLC_AUDIO_CODEC

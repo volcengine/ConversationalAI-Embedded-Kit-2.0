@@ -99,7 +99,7 @@
    idf.py menuconfig
    ```
 
-   进入 `Example Configuration` 菜单，在 `volcano instance id` 中填入你的实例ID，在 `volcano product key` 中填入你的产品Key，在 `volcano product secret` 中填入你的产品秘钥，在 `device name` 中填入你的设备ID， 在 `bot id` 中填入你的智能体ID，并保存。
+   进入 `Example Configuration` 菜单，在 `app id` 中填入你的APP ID，在 `the ip for get token` 中填入你的IP地址，并保存。
 3. 编译固件。
 
    ```bash

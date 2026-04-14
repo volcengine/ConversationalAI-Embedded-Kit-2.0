@@ -3,6 +3,8 @@
 
 # include("../../../../application/framework/CMakeLists.txt")
 
+
+
 file(GLOB  APP_SRC  "./echoear_app/*.c")
 
 set(COMPONENT_SRCS "conv_ai_embedded_kit.c configuration_ap.c network.c" ${FRAMEWORK_SRCS} ${APP_SRC} ${SERVICE_SRCS})

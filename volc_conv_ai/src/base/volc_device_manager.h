@@ -40,6 +40,8 @@ int volc_get_rtc_config(volc_iot_info_t* info, int audio_codec, const char* bot_
 char* volc_generate_signature(const char* secret_key, const char* product_key, const char* device_name, int rnd, uint64_t timestamp, int auth_type);
 char* volc_generate_signature_ws(const char* secret_key, const char* product_key, const char* device_name, const char* instance_id, int rnd, uint64_t timestamp, int auth_type);
 
+int volc_send_start_command(const char* url, volc_iot_info_t* info, volc_room_info_t* room_info);
+
 #ifdef __cplusplus
 }
 #endif

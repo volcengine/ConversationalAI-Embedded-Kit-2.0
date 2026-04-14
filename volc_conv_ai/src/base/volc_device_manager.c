@@ -80,6 +80,12 @@ volc_error_code_e volc_inter_err_2_ext_err(int code) {
 
 int volc_device_register(volc_iot_info_t* info, char** output)
 {
+#ifdef VOLC_CONV_AI_SKIP_REGISTER
+    info->rtc_app_id = CONFIG_VOLC_APPID;
+    LOGI("jump register appid and use appid from config: %s", info->rtc_app_id);
+    return 0;
+#endif
+
     int ret = 0;
     uint64_t current_time = volc_osal_get_time_ms();
     int32_t random_num = (int32_t)current_time;
@@ -149,7 +155,69 @@ err_out_label:
 
 #define VOLC_GET_RTC_CONFIG_PATH "/2021-12-14/GetRTCConfig"
 #define VOLC_API_ACTION_GET_RTC_CONFIG  "Action=GetRTCConfig"
+
+int volc_send_start_command(const char* url, volc_iot_info_t* info, volc_room_info_t* room_info) {
+    int ret = 0;
+    const char* json_str = "{\"command\": \"start\"}";
+    char* response = NULL;
+    cJSON* response_json = NULL;
+
+    LOGI("Sending start command to %s", url);
+    response = volc_http_post(url, json_str, strlen(json_str));
+    if (response == NULL) {
+        LOGE("Failed to send start command");
+        ret = -1;
+        goto err_out_label;
+    }
+    //  {"status": "success", "Result": {"room_id": "xxx", "uid": "xxx", "app_id": "xxx", "token": "xxxx=="}}  
+    LOGI("Start command response: %s", response);
+
+    response_json = cJSON_Parse(response);
+    if (response_json == NULL) {
+        LOGE("Failed to parse response JSON");
+        ret = -1;
+        goto err_out_label;
+    }
+    ret = volc_json_read_string(response_json, "Result.room_id", &room_info->rtc_opt.p_channel_name);
+    if (ret != 0) {
+        LOGE("Failed to read room_id from response JSON");
+        ret = -1;
+        goto err_out_label;
+    }
+    ret = volc_json_read_string(response_json, "Result.uid", &room_info->rtc_opt.p_uid);
+    if (ret != 0) {
+        LOGE("Failed to read uid from response JSON");
+        ret = -1;
+        goto err_out_label;
+    }
+    ret = volc_json_read_string(response_json, "Result.token", &room_info->rtc_opt.p_token);
+    if (ret != 0) {
+        LOGE("Failed to read token from response JSON");
+        ret = -1;
+        goto err_out_label;
+    }
+    ret = volc_json_read_string(response_json, "Result.app_id", &info->rtc_app_id);
+    if (ret != 0) {
+        LOGE("Failed to read app_id from response JSON");
+        ret = -1;
+        goto err_out_label;
+    }
+    LOGI("room_id: %s, uid: %s, token: %s, app_id: %s", 
+         room_info->rtc_opt.p_channel_name, room_info->rtc_opt.p_uid, room_info->rtc_opt.p_token, info->rtc_app_id);
+
+err_out_label:
+    HAL_SAFE_FREE(response);
+    if (response_json) {
+        cJSON_Delete(response_json);
+    }
+    return ret;
+}
+
 int volc_get_rtc_config(volc_iot_info_t* info, int audio_codec, const char* bot_id, const char* task_id, volc_room_info_t* room_info, const char* params) {
+#ifdef VOLC_CONV_AI_SKIP_REGISTER
+    return volc_send_start_command(CONFIG_VOLC_IP, info, room_info);
+#endif
+
     int ret = 0;
     uint64_t current_time = volc_osal_get_time_ms();
     int32_t random_num = (int32_t)current_time;

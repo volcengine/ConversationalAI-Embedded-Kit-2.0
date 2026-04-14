@@ -1,3 +1,5 @@
+#  cmake -DVOLC_CONV_AI_SKIP_REGISTER=ON ..
+set(VOLC_CONV_AI_SKIP_REGISTER ON CACHE BOOL "Skip device registration and jump directly")
 set(VOLC_CONV_AI_SRCS "${CMAKE_CURRENT_LIST_DIR}/../src/volc_conv_ai.c"
                 "${CMAKE_CURRENT_LIST_DIR}/../src/base/volc_device_manager.c"
                 "${CMAKE_CURRENT_LIST_DIR}/../src/util/volc_auth.c"
@@ -8,6 +10,13 @@ set(VOLC_CONV_AI_SRCS "${CMAKE_CURRENT_LIST_DIR}/../src/volc_conv_ai.c"
                 "${CMAKE_CURRENT_LIST_DIR}/../third_party/mbedtls_port/tls_client.c"
                 "${CMAKE_CURRENT_LIST_DIR}/../third_party/webclient/src/webclient.c"
                 CACHE INTERNAL "ConversationalAI-Embedded-Kit-2.0 common src file")
+
+if(VOLC_CONV_AI_SKIP_REGISTER)
+  #  add_definitions(-DCONFIG_VOLC_IP="xxxx")
+  #  add_definitions(-DCONFIG_VOLC_APPID="xxxx")
+
+  set(ENV{CFLAGS} "$ENV{CFLAGS} -DVOLC_CONV_AI_SKIP_REGISTER")
+endif()
 
 set(VOLC_CONV_AI_INCS "${CMAKE_CURRENT_LIST_DIR}/../inc"
                 "${CMAKE_CURRENT_LIST_DIR}/../src"

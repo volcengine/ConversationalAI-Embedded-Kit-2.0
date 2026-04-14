@@ -55,13 +55,15 @@ extern "C" {
   }\
 }"
 
-#define CONV_SERVICE_TIMEOUT 60
+#define CONV_SERVICE_TIMEOUT 300
 
 static char config_buf[1024] = {0};
 static volc_conv_service_t conv_service = {0};
 
 static volatile bool is_stop = false;
 static volc_hal_display_t global_display = NULL;
+
+static bool is_think = false;
 
 volc_conv_service_t get_conv_ai_service()
 {
@@ -74,7 +76,7 @@ static void __audio_capture_cb(volc_hal_capture_t capture, const void* data, int
     volc_audio_frame_info_t info = {0};
     info.commit = false;
     info.data_type =  frame_info->data_type;
-    if(!is_stop)
+    if(!is_stop && !is_think)
     {
         volc_send_audio_data(conv_service.engine, data, len, &info);
         // if(audioFile == NULL){
@@ -107,22 +109,27 @@ static void __on_volc_conversation_status(volc_engine_t handle, volc_conv_status
     {
     case VOLC_CONV_STATUS_LISTENING:
         volc_hal_display_set_content(global_display,VOLC_DISPLAY_OBJ_STATUS,VOLC_DISPLAY_TEXT,"智能体聆听中");
+        is_think = false;
         break;
     case VOLC_CONV_STATUS_THINKING:
         index = MMAP_EAF_EMOTION_DIZZY_284_126_EAF;
         volc_hal_display_set_content(global_display,VOLC_DISPLAY_OBJ_MAIN,VOLC_DISPLAY_IMAGE,&index);
         volc_hal_display_set_content(global_display,VOLC_DISPLAY_OBJ_STATUS,VOLC_DISPLAY_TEXT,"智能体思考中");
+        is_think = true;
         break;
     case VOLC_CONV_STATUS_ANSWERING:
         index = MMAP_EAF_HAPPY_EAF;
         volc_hal_display_set_content(global_display,VOLC_DISPLAY_OBJ_MAIN,VOLC_DISPLAY_IMAGE,&index);
         volc_hal_display_set_content(global_display,VOLC_DISPLAY_OBJ_STATUS,VOLC_DISPLAY_TEXT,"智能体说话中");
+        is_think = false;
         break;
     case VOLC_CONV_STATUS_INTERRUPTED:
         volc_hal_display_set_content(global_display,VOLC_DISPLAY_OBJ_STATUS,VOLC_DISPLAY_TEXT,"智能体被打断");
+        is_think = false;
         break;
     case VOLC_CONV_STATUS_ANSWER_FINISH:
         volc_hal_display_set_content(global_display,VOLC_DISPLAY_OBJ_STATUS,VOLC_DISPLAY_TEXT,"智能体说话完成");
+        is_think = false;
         break;
     default:
         break;
@@ -288,7 +295,7 @@ void conv_ai_service_task(void *pvParameters)
     // step 2: start ai conversation
     volc_opt_t opt = {
         .mode = VOLC_MODE_RTC,
-        .bot_id = CONFIG_VOLC_BOT_ID,
+        .bot_id = "CONFIG_VOLC_BOT_ID",
     };
 #if defined ENABLE_PLAY_WELCOME
     aios_event_pub(VOLC_LOCAL_LOGIC_PLAY_WELCOME, NULL, NULL);
