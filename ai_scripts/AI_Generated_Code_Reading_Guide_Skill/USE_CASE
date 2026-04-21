@@ -1,0 +1,29 @@
+推荐直接复制以下示例使用：
+
+1. 参考本地 `SKILL.md` 执行
+
+请先阅读 `/Users/bytedance/Desktop/work/conversation_ai/ai_scripts/AI_Generated_Code_Reading_Guide_Skill/SKILL.md`，
+然后按其中的规则阅读 `/Users/bytedance/Desktop/work/conversation_ai/application` 目录的主体代码，
+结合各子目录中的 `README_zh.md`，
+生成一份代码导读文档，并写入该目录下的 `application_AI_Generated_Code_Reading_Guide.md`。
+
+2. 参考本地 `SKILL.md` 执行，针对 `volc_conv_ai`
+
+请先阅读 `/Users/bytedance/Desktop/work/conversation_ai/ai_scripts/AI_Generated_Code_Reading_Guide_Skill/SKILL.md`，
+然后按其中的规则阅读 `/Users/bytedance/Desktop/work/conversation_ai/volc_conv_ai` 目录的主体代码，
+明确对外 API 边界，
+生成一份代码导读文档，并写入该目录下的 `volc_conv_ai_AI_Generated_Code_Reading_Guide.md`。
+
+3. 如果该 Skill 已放入标准 Trae 目录，可直接这样说
+
+请使用 `AI_Generated_Code_Reading_Guide_Skill`，
+阅读 `/Users/bytedance/Desktop/work/conversation_ai/application` 目录主体代码，
+结合 `README_zh.md` 生成一份代码导读文档。
+
+4. 更通用的模板
+
+请先阅读 `<你的 SKILL.md 路径>`，
+然后按其中规则阅读 `<目标目录>` 的主体代码，
+结合相关 `README.md` 或 `README_zh.md`，
+输出一份适合快速理解代码的 AI 生成代码导读文档，
+并写入 `<输出 Markdown 路径>`。
