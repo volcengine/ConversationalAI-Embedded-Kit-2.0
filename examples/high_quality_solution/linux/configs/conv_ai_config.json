@@ -1,0 +1,27 @@
+{
+  "mode": 0,
+  "bot_id": "*************",
+  "ver": 1,
+  "iot": {
+    "instance_id": "*************",
+    "product_key": "*************",
+    "product_secret": "*************",
+    "device_name": "*************"
+  },
+  "rtc": {
+    "log_level": 1,
+    "audio" : {
+      "publish": true,
+      "subscribe": true,
+      "codec": 3
+    },
+    "video" : {
+      "publish": false,
+      "subscribe": false,
+      "codec": 1
+    },
+    "params": [
+      "{\"audio\":{\"codec\":{\"internal\":{\"enable\":1}}}}"
+    ]
+  }
+}
