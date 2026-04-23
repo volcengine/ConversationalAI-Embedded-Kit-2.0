@@ -3,7 +3,7 @@
 
 ## 介绍
 
-硬件对话智能体，是一个端到端的智能硬件对话开发平台，兼容主流 IoT 芯片，可快速帮助开发者将低延迟、高自然的 AI 对话能力集成到智能硬件中，让智能硬件会听、会看、会说话，适用于 AI 玩具、智能穿戴设备(AI眼镜，智能手表等设备)、陪伴机器人、智能家居、教育硬件、具身智能设备等场景。
+本demo是一个端到端的智能硬件对话开发平台，兼容主流 IoT 芯片，可快速帮助开发者将低延迟、高自然的 AI 对话能力集成到智能硬件中，让智能硬件会听、会看、会说话，适用于 AI 玩具、智能穿戴设备(AI眼镜，智能手表等设备)、陪伴机器人、智能家居、教育硬件、具身智能设备等场景。
 
 ### 功能特性
 
@@ -20,15 +20,15 @@
 ## 目录结构
 
 - **application**:  该目录下包含了ai对话智能体application的相关代码，包括：
-  
+
   - Platform： 屏蔽硬件细节，使用户专注软件开发
   - Framwork： 规范业务交互协议，使各个业务模块间能十分容易的交互
   - service：  拆分不同的业务模块，每个业务模块都代表了 这一部分业务的最佳实践：
 - **volc_conv_ai**： 该目录下包含了与云端智能体建立网络连接相关的代码，对外是统一的建联接口（ volc_conv_ai/inc/volc_conv_ai.h ），底层建联有两种模式：
-  
+
   - 低负载的建联方案(volc_conv_ai/src/transports/low_load)
   - 高质量的建联方案（volc_conv_ai/src/transports/high_quality）
-如果想快速移植这部分代码到当前仓库尚未支持的平台，请参考[平台移植](volc_conv_ai/README.md) 
+    如果想快速移植这部分代码到当前仓库尚未支持的平台，请参考[平台移植](volc_conv_ai/README.md)
 - **examples**:  该目录下给出了基于application和volc_conv_ai快速构建app的demo代码示例；
 
 ## 快速体验
@@ -51,6 +51,7 @@
 
 - 乐鑫 ESP32-S3-EchoEar（喵伴）: [运行设备端_乐鑫](examples/high_quality_solution/espressif/README.md)  （推荐）
 - 乐鑫 ESP32-S3-Korvo-2: 请切换分支到main_Korvo_2
+- 乐鑫 ESP32-S3-EchoEar支持claw: 请切换分支到supportClaw_main
 - MacOS方案: [运行设备端_MacOS](examples/high_quality_solution/macos/README.md)（完善中）
 
 ## 技术交流
@@ -58,4 +59,3 @@
 欢迎加入我们的技术交流群或提出Issue，一起探讨技术，一起学习进步。
 
 <div align=center><img src="resource/image/tech_support.png" width="200"></div>
-

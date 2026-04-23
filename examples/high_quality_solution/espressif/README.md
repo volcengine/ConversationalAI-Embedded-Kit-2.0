@@ -77,11 +77,11 @@
    cd $IDF_PATH/examples
    ```
 
-   2. 克隆实时对话式 AI 硬件示例工程，切换到main分支。
+   2. 克隆实时对话式 AI 硬件示例工程，切换到supportClaw_main分支。
 
    ```bash
    git clone https://github.com/volcengine/ConversationalAI-Embedded-Kit-2.0.git
-   git checkout main
+   git checkout supportClaw_main
    ```
 
 ### 编译固件
@@ -93,7 +93,7 @@
    ```bash
    cd $IDF_PATH/examples/ConversationalAI-Embedded-Kit-2.0/examples/high_quality_solution/espressif
    ```
-2. 设置 实例ID、产品ID、产品秘钥、设备ID等参数。
+2. 设置 APP ID、IP地址等参数。
 
    ```bash
    idf.py menuconfig
