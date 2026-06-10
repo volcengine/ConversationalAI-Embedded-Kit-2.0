@@ -290,27 +290,23 @@ void volc_destroy(volc_engine_t handle) {
     if (NULL == engine) {
         return;
     }
-    // if (engine->status == VOLC_RT_STATE_STARTED) {
-    //     volc_stop(handle);
-    // }
-    switch(engine->mode) {
-        case VOLC_MODE_WS:
+    // Destroy whichever transports were created, regardless of engine->mode.
+    // mode is only assigned in volc_start, so switching on it leaked the whole
+    // RTC engine (live tasks referencing the freed engine struct) whenever the
+    // engine was destroyed without ever being started; the next volc_create
+    // then crashed inside the RTC lite library.
 #if defined(ENABLE_WS_MODE)
-            volc_ws_destroy(engine->ws);
-#else
-            LOGW("WS mode is not enabled");
-#endif
-            break;
-        case VOLC_MODE_RTC:
-#if defined(ENABLE_RTC_MODE)
-            volc_rtc_destroy(engine->rtc);
-#else
-            LOGW("RTC mode is not enabled");
-#endif
-            break;
-        default:
-            break;
+    if (engine->ws) {
+        volc_ws_destroy(engine->ws);
+        engine->ws = NULL;
     }
+#endif
+#if defined(ENABLE_RTC_MODE)
+    if (engine->rtc) {
+        volc_rtc_destroy(engine->rtc);
+        engine->rtc = NULL;
+    }
+#endif
     _iot_info_free(&engine->info);
     HAL_SAFE_FREE(engine);
 }
@@ -350,9 +346,16 @@ int volc_start(volc_engine_t handle, volc_opt_t* opt) {
 #endif
     }
 
+    if (ret != 0) {
+        // Keep CREATED/STOPPED on failure so the caller can retry volc_start;
+        // marking STARTED here used to wedge the engine after e.g. a
+        // GetRTCConfig HTTP failure ("engine is not in CREATED state").
+        LOGE("engine start failed: %d", ret);
+        return ret;
+    }
     engine->status = VOLC_RT_STATE_STARTED;
     LOGI("engine started successfully");
-    return ret;
+    return 0;
 }
 
 int volc_stop(volc_engine_t handle) {
