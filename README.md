@@ -53,6 +53,10 @@
 - 乐鑫 ESP32-S3-Korvo-2: 请切换分支到main_Korvo_2
 - MacOS方案: [运行设备端_MacOS](examples/high_quality_solution/macos/README.md)（完善中）
 
+## Security and privacy
+This project takes security seriously. 
+For vulnerability reporting and supported versions, see [SECURITY.md](SECURITY.md)
+
 ## 技术交流
 
 欢迎加入我们的技术交流群或提出Issue，一起探讨技术，一起学习进步。
